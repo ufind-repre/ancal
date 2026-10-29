@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f47721"><title>ANCAL | Gestão Metrológica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">A</div><div><strong>ANCAL</strong><span>GESTÃO METROLÓGICA</span></div><button class="close-nav" id="closeNav" aria-label="Fechar menu">×</button></div>
+    <div class="workspace-label">ESPAÇO DE TRABALHO</div><div class="lab-select"><span class="lab-dot"></span><span>Laboratório ANCAL</span><span class="chevron">⌄</span></div>
+    <div class="nav-label">MENU PRINCIPAL</div>
+    <nav class="main-nav" aria-label="Menu principal">
+      <button class="nav-link active" data-page="dashboard"><span class="nav-icon">▦</span>Painel geral</button>
+      <button class="nav-link" data-page="ordens"><span class="nav-icon">▤</span>Ordens de serviço <span class="nav-count">8</span></button>
+      <button class="nav-link" data-page="equipamentos"><span class="nav-icon">◉</span>Equipamentos</button>
+      <button class="nav-link" data-page="calibracoes"><span class="nav-icon">⌁</span>Calibrações</button>
+      <button class="nav-link" data-page="padroes"><span class="nav-icon">◇</span>Gestão de padrões</button>
+      <button class="nav-link" data-page="certificados"><span class="nav-icon">▧</span>Certificados</button>
+    </nav>
+    <div class="nav-label secondary-label">ADMINISTRAÇÃO</div>
+    <nav class="main-nav"><button class="nav-link" data-page="clientes"><span class="nav-icon">♧</span>Clientes</button><button class="nav-link" data-page="usuarios"><span class="nav-icon">♙</span>Usuários e auditoria</button></nav>
+    <div class="sidebar-bottom"><div class="cloud-card"><div class="cloud-icon">☁</div><div><strong>Dados protegidos</strong><span>Backup em nuvem ativo</span></div><i></i></div><div class="user-card"><div class="avatar">IJ</div><div class="user-info"><strong>Isabela Jurado</strong><span>Área técnica</span></div><button class="more" aria-label="Opções">···</button></div></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="main-area">
+    <header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button><div class="breadcrumbs"><span>ANCAL</span><b>/</b><strong id="crumb">Painel geral</strong></div><div class="top-actions"><div class="secure"><span>●</span> Ambiente seguro</div><button class="icon-button" id="helpBtn" aria-label="Ajuda">?</button><button class="notification" aria-label="Notificações">♧<i></i></button><div class="top-avatar">IJ</div></div></header>
+    <div class="content" id="app"><p class="demo-note">Carregando o painel…</p><noscript>Ative o JavaScript do navegador para usar o protótipo.</noscript></div>
+    <footer><span>ANCAL <b>•</b> Gestão metrológica</span><span>Protótipo de demonstração <b>•</b> Dados ilustrativos</span></footer>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="modal-backdrop" id="modalBackdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="modalClose" aria-label="Fechar">×</button><div id="modalBody"></div></section></div>
+  <script src="downloads.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+</html>
