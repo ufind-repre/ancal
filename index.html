@@ -5,12 +5,30 @@
   <meta name="theme-color" content="#f47721"><title>ANCAL | Gestão Metrológica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="client.css?v=5">
+  <link rel="stylesheet" href="access.css?v=5">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
     <div class="brand"><div class="brand-mark">A</div><div><strong>ANCAL</strong><span>GESTÃO METROLÓGICA</span></div><button class="close-nav" id="closeNav" aria-label="Fechar menu">×</button></div>
     <div class="workspace-label">ESPAÇO DE TRABALHO</div><div class="lab-select"><span class="lab-dot"></span><span>Laboratório ANCAL</span><span class="chevron">⌄</span></div>
+    <section id="clientCompanyContext" class="client-company-context" aria-label="Empresa em consulta" hidden>
+      <label for="clientCompanySelect" class="client-company-label">Empresa em consulta</label>
+      <select id="clientCompanySelect" class="client-company-select" aria-describedby="clientCompanyCnpj clientCompanyHelp"></select>
+      <p id="clientCompanyCnpj" class="client-company-cnpj"></p>
+      <p id="clientCompanyHelp" class="client-company-help"></p>
+    </section>
+    <section class="perspective-box" aria-label="Alternar visualização">
+      <div class="perspective-eyebrow">◈ PRÉVIA DE ACESSO</div>
+      <div class="perspective-title">Você está na <span id="perspectiveLabel">visão geral</span></div>
+      <div class="perspective-buttons" role="group" aria-label="Visão do sistema">
+        <button type="button" class="is-selected" data-view="internal" aria-pressed="true">▦ Visão geral</button>
+        <button type="button" data-view="client" aria-pressed="false">♧ Visão cliente</button>
+      </div>
+      <p class="perspective-note" id="perspectiveNote">Alterne para conhecer a área do cliente.</p>
+    </section>
+    <div id="internalNavigation">
     <div class="nav-label">MENU PRINCIPAL</div>
     <nav class="main-nav" aria-label="Menu principal">
       <button class="nav-link active" data-page="dashboard"><span class="nav-icon">▦</span>Painel geral</button>
@@ -22,6 +40,17 @@
     </nav>
     <div class="nav-label secondary-label">ADMINISTRAÇÃO</div>
     <nav class="main-nav"><button class="nav-link" data-page="clientes"><span class="nav-icon">♧</span>Clientes</button><button class="nav-link" data-page="usuarios"><span class="nav-icon">♙</span>Usuários e auditoria</button></nav>
+    </div>
+    <div id="clientNavigation" hidden>
+      <div class="nav-label">ÁREA DO CLIENTE</div>
+      <nav class="main-nav" aria-label="Menu do cliente">
+        <button class="nav-link" data-client-page="overview"><span class="nav-icon">▦</span>Meu painel</button>
+        <button class="nav-link" data-client-page="services"><span class="nav-icon">▤</span>Meus serviços</button>
+        <button class="nav-link" data-client-page="equipment"><span class="nav-icon">◉</span>Meus equipamentos</button>
+        <button class="nav-link" data-client-page="calibrations"><span class="nav-icon">⌁</span>Minhas calibrações</button>
+        <button class="nav-link" data-client-page="certificates"><span class="nav-icon">▧</span>Meus certificados</button>
+      </nav>
+    </div>
     <div class="sidebar-bottom"><div class="cloud-card"><div class="cloud-icon">☁</div><div><strong>Dados protegidos</strong><span>Backup em nuvem ativo</span></div><i></i></div><div class="user-card"><div class="avatar">IJ</div><div class="user-info"><strong>Isabela Jurado</strong><span>Área técnica</span></div><button class="more" aria-label="Opções">···</button></div></div>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -32,7 +61,9 @@
   </main>
   <div class="toast" id="toast" role="status"></div>
   <div class="modal-backdrop" id="modalBackdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="modalClose" aria-label="Fechar">×</button><div id="modalBody"></div></section></div>
-  <script src="downloads.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="downloads.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+  <script src="access.js?v=5"></script>
+  <script src="client.js?v=5"></script>
 </body>
 </html>
