@@ -1,0 +1,6 @@
+Ferramenta: imagegen, edição incorporada.
+Arquivo final: assets/ancal-simbolo-branco.png
+Referências: logo original e primeira extração do símbolo.
+
+Prompt final:
+Use case: precise-object-edit. Image 1 is the edit target (two isolated gears); image 2 is the original brand reference. Correct ONLY the flat-color rendering of Image 1 to match the original reference. All pixels of the background AND both circular gear interiors must be uniform opaque pure white #FFFFFF. Large gear and its crosshair must be a single uniform flat orange #E06B1C; small gear must be a single uniform near-black #1D1D1D. Absolutely no gradients, texture, gloss, shading, shadows, gray background, vignette or simulated paper. Retain the exact existing gear silhouettes, tooth count, crosshair, relative scale, horizontal placement and framing of Image 1. This is flat digital logo artwork, not a 3D render. Keep only these two gear symbols with clean antialiased edges, on white. No text, no letters, no numbers, no registered trademark symbol, no watermark. Keep a small white margin around the symbol. Output a landscape image.

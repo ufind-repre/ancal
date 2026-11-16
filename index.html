@@ -5,13 +5,29 @@
   <meta name="theme-color" content="#f47721"><title>ANCAL | Gestão Metrológica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5">
-  <link rel="stylesheet" href="client.css?v=5">
-  <link rel="stylesheet" href="access.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="client.css?v=17">
+  <link rel="stylesheet" href="access.css?v=17">
+  <link rel="stylesheet" href="equipment.css?v=17">
+  <link rel="stylesheet" href="navigation.css?v=17">
+  <link rel="stylesheet" href="expiry.css?v=17">
+  <link rel="stylesheet" href="workplace-inline.css?v=17">
+  <link rel="stylesheet" href="certificates.css?v=17">
+  <link rel="stylesheet" href="certificate-technical.css?v=17">
+  <link rel="stylesheet" href="equipment-workspace.css?v=17">
+  <link rel="stylesheet" href="customers-workspace.css?v=17">
+  <link rel="stylesheet" href="orders-workspace.css?v=17">
+  <link rel="stylesheet" href="standards-workspace.css?v=17">
+  <link rel="stylesheet" href="certificate-document.css?v=17">
 </head>
 <body>
-  <aside class="sidebar" id="sidebar">
-    <div class="brand"><div class="brand-mark">A</div><div><strong>ANCAL</strong><span>GESTÃO METROLÓGICA</span></div><button class="close-nav" id="closeNav" aria-label="Fechar menu">×</button></div>
+  <header class="site-header" id="siteHeader">
+    <div class="topbar"><div class="brand"><img class="brand-logo" src="assets/ancal-simbolo-branco.png" alt="Símbolo da ANCAL Calibrações" width="1536" height="1024" decoding="async" fetchpriority="high"></div><div class="breadcrumbs"><span>ANCAL</span><b>/</b><strong id="crumb">Painel geral</strong></div><div class="top-actions"><div class="secure"><span>●</span> Ambiente seguro</div><button class="header-view-shortcut" id="viewToggleShortcut" type="button" aria-haspopup="dialog" aria-controls="sidebar" aria-expanded="false"><span id="headerViewLabel">Visão geral</span><span aria-hidden="true">⇄</span></button><button class="icon-button" id="helpBtn" aria-label="Ajuda">?</button><button class="notification" aria-label="Notificações">♧<i></i></button><div class="top-avatar">IJ</div><button class="menu-toggle nav-overflow-button" id="menuToggle" type="button" aria-label="Abrir opções de navegação" title="Todas as opções" aria-haspopup="dialog" aria-controls="sidebar" aria-expanded="false">⋯</button></div></div>
+    <div class="navigation-row"><button class="nav-scroll-arrow" data-nav-scroll="back" type="button" aria-label="Rolar menu para a esquerda" aria-controls="topNavViewport">‹</button><div class="top-nav-viewport" id="topNavViewport" tabindex="0" aria-label="Menu com rolagem horizontal"><nav class="top-nav-items" id="topNavItems" aria-label="Navegação principal"></nav></div><button class="nav-scroll-arrow" data-nav-scroll="next" type="button" aria-label="Rolar menu para a direita" aria-controls="topNavViewport">›</button></div>
+  </header>
+  <aside class="sidebar top-options-panel" id="sidebar" role="dialog" aria-modal="true" aria-labelledby="optionsHeading" aria-hidden="true" inert>
+    <div class="options-heading"><h2 id="optionsHeading">Opções do sistema</h2><button class="close-nav" id="closeNav" aria-label="Fechar opções">×</button></div>
+    <div class="options-content">
     <div class="workspace-label">ESPAÇO DE TRABALHO</div><div class="lab-select"><span class="lab-dot"></span><span>Laboratório ANCAL</span><span class="chevron">⌄</span></div>
     <section id="clientCompanyContext" class="client-company-context" aria-label="Empresa em consulta" hidden>
       <label for="clientCompanySelect" class="client-company-label">Empresa em consulta</label>
@@ -52,18 +68,38 @@
       </nav>
     </div>
     <div class="sidebar-bottom"><div class="cloud-card"><div class="cloud-icon">☁</div><div><strong>Dados protegidos</strong><span>Backup em nuvem ativo</span></div><i></i></div><div class="user-card"><div class="avatar">IJ</div><div class="user-info"><strong>Isabela Jurado</strong><span>Área técnica</span></div><button class="more" aria-label="Opções">···</button></div></div>
+    </div>
   </aside>
-  <div class="scrim" id="scrim"></div>
-  <main class="main-area">
-    <header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button><div class="breadcrumbs"><span>ANCAL</span><b>/</b><strong id="crumb">Painel geral</strong></div><div class="top-actions"><div class="secure"><span>●</span> Ambiente seguro</div><button class="icon-button" id="helpBtn" aria-label="Ajuda">?</button><button class="notification" aria-label="Notificações">♧<i></i></button><div class="top-avatar">IJ</div></div></header>
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+  <main class="main-area" id="mainContent">
+
     <div class="content" id="app"><p class="demo-note">Carregando o painel…</p><noscript>Ative o JavaScript do navegador para usar o protótipo.</noscript></div>
     <footer><span>ANCAL <b>•</b> Gestão metrológica</span><span>Protótipo de demonstração <b>•</b> Dados ilustrativos</span></footer>
   </main>
   <div class="toast" id="toast" role="status"></div>
   <div class="modal-backdrop" id="modalBackdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="modalClose" aria-label="Fechar">×</button><div id="modalBody"></div></section></div>
-  <script src="downloads.js?v=5"></script>
-  <script src="app.js?v=5"></script>
-  <script src="access.js?v=5"></script>
-  <script src="client.js?v=5"></script>
+  <script src="identity.js?v=17"></script>
+  <script src="downloads.js?v=17"></script>
+  <script src="app.js?v=17"></script>
+  <script src="equipment.js?v=17"></script>
+  <script src="access.js?v=17"></script>
+  <script src="customers-workspace.js?v=17"></script>
+  <script src="expiry.js?v=17"></script>
+  <script src="certificate-technical.js?v=17"></script>
+  <script src="certificate-presentation.js?v=17"></script>
+  <script src="certificate-document.js?v=17"></script>
+  <script src="certificate-pdf.js?v=17"></script>
+  <script src="certificates-store.js?v=17"></script>
+  <script src="certificates-ui.js?v=17"></script>
+  <script src="equipment-workspace.js?v=17"></script>
+  <script src="orders-workspace.js?v=17"></script>
+  <script src="standards-workspace.js?v=17"></script>
+  <script src="order-sheet-logo.js?v=17"></script>
+  <script src="order-sheet.js?v=17"></script>
+  <script src="client.js?v=17"></script>
+  <script src="certificates-bridge.js?v=17"></script>
+  <script src="navigation.js?v=17"></script>
+  <script src="expiry-integration.js?v=17"></script>
+  <script src="workplace-inline.js?v=17"></script>
 </body>
 </html>

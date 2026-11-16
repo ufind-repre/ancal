@@ -1,0 +1,21 @@
+.workplace-display { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 36px; padding: 7px 8px; border: 1px dashed transparent; border-radius: 6px; background: transparent; color: #536777; font: inherit; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.workplace-display:hover, .workplace-display:focus-visible { border-color: #efbd98; background: #fff7f0; }
+.workplace-display:focus-visible { outline: 2px solid #ed9b61; outline-offset: 2px; }
+.workplace-display.is-empty { color: #ad845f; }
+.workplace-edit-icon { flex-shrink: 0; color: #b78c69; font-size: 14px; }
+.os-workplace-cell.is-editing { min-width: 230px; max-width: 280px; background: #fffaf6; }
+.workplace-inline-form { margin: 0; white-space: normal; }
+.workplace-inline-form label { display: block; margin-bottom: 5px; color: #71808c; font-size: 10px; font-weight: 600; }
+.workplace-inline-form input { display: block; width: 100%; min-width: 0; height: 35px; padding: 7px 9px; border: 1px solid #e6b18a; border-radius: 6px; color: #405461; background: #fff; font: 400 11px 'DM Sans', sans-serif; }
+.workplace-inline-form input:focus { outline: 2px solid #ffe4d0; outline-offset: 1px; }
+.workplace-inline-form input[aria-invalid="true"] { border-color: #ce7064; }
+.workplace-inline-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.workplace-inline-actions .btn { min-height: 32px; height: auto; padding: 6px 10px; font-size: 10px; }
+.workplace-inline-form small { display: block; margin-top: 6px; color: #9e9a93; font-size: 9px; }
+.workplace-inline-error { margin: 7px 0 0; color: #b76055; font-size: 10px; line-height: 1.5; }
+.workplace-inline-error[hidden] { display: none; }
+@media(max-width:700px) {
+  .workplace-display { min-height: 44px; }
+  .workplace-inline-form input, .workplace-inline-actions .btn { min-height: 44px; }
+  .os-workplace-cell.is-editing { min-width: 220px; }
+}

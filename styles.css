@@ -5,3 +5,22 @@
 button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid #ef8a41;outline-offset:3px}
 .modal{max-height:calc(100vh - 40px);overflow-y:auto}
 @media(max-width:700px){.heading-actions .btn-light[data-action="portal-view"]{display:inline-flex}.heading-actions{justify-content:flex-start}}
+/* Equipment selection for a service order. */
+#newOsForm #osEquipment { min-height: 132px; height: auto; padding: 7px; font-size: 11px; line-height: 1.6; }
+#newOsForm #osEquipment option { padding: 8px 9px; border-radius: 4px; }
+#newOsForm #osEquipment:disabled { background: #f7f9fb; color: #98a3ae; }
+.os-equipment-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+.os-equipment-label label { margin-bottom: 0; }
+.os-equipment-count { flex-shrink: 0; padding: 3px 7px; border-radius: 10px; background: #fff1e7; color: #c46a28; font-size: 9px; }
+.os-equipment-help { display: block; margin-top: 7px; color: #8a96a1; font-size: 9px; line-height: 1.6; }
+.os-equipment-state { margin-top: 5px; color: #7e8d99; font-size: 10px; line-height: 1.6; }
+.os-equipment-details { list-style: none; margin: 6px 0 0; padding: 0; }
+.os-equipment-details li { padding: 8px 10px; border: 1px solid #e9edf1; border-radius: 6px; background: #fafbfd; }
+.os-equipment-details li + li { margin-top: 6px; }
+.os-equipment-details strong { display: block; color: #455564; font-size: 11px; font-weight: 600; }
+.os-equipment-details span { display: block; margin-top: 4px; color: #8e9ca7; font-size: 9px; }
+.os-equipment-detail-field { grid-column: 1 / -1; }
+.os-workplace-cell { min-width: 135px; max-width: 210px; white-space: normal; overflow-wrap: anywhere; }
+.os-form-error { padding: 9px 11px; border: 1px solid #f4d3ca; border-radius: 6px; background: #fff4ef; color: #b56143 !important; font-size: 11px !important; }
+#newOsForm .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+@media(max-width:430px) { #newOsForm #osEquipment { min-height: 148px; } .modal-actions { flex-wrap: wrap; } }

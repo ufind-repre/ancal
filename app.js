@@ -23,15 +23,42 @@ function button(label,cls='btn',action=''){return `<button class="${cls}" ${acti
 function heading(title,subtitle,actions=''){return `<div class="page-heading"><div><div class="eyebrow">${currentPage==='dashboard'?'QUINTA-FEIRA, 29 DE OUTUBRO DE 2026':'OPERAÇÃO TÉCNICA'}</div><h1>${title}</h1><p>${subtitle}</p></div><div class="heading-actions">${actions}</div></div>`}
 function stat(label,value,foot,icon,color=''){return `<div class="stat-card"><div class="stat-top">${label}<span class="stat-icon ${color}">${icon}</span></div><div class="stat-value">${value}</div><div class="stat-foot">${foot}</div></div>`}
 function pill(type,text){return `<span class="pill pill-${type}">${text}</span>`}
-function tableRows(items){return items.map(r=>`<tr data-search="${escapeHtml((r.id+' '+r.client+' '+r.equipment+' '+r.tag).toLowerCase())}"><td class="os-id">${r.id}</td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>${r.cnpj}</span></td><td class="equip-cell">${escapeHtml(r.equipment)}<br><span>${r.tag}</span></td><td>${r.due}</td><td>${pill(r.type,r.status)}</td><td><button class="row-action" data-record="${r.id}" aria-label="Ver ${r.id}">···</button></td></tr>`).join('')}
-function osTable(title='Ordens de serviço recentes',data=records.slice(0,5)){return `<section class="panel table-panel"><div class="panel-heading"><div><h2>${title}</h2><p>Visão geral dos serviços técnicos</p></div><div class="table-tools"><input class="search" placeholder="⌕  Buscar OS ou cliente" aria-label="Buscar"><button class="filter-btn" data-action="filter">☷　Filtros</button><button class="text-link" data-page="ordens">Ver todas　→</button></div></div><div class="table-scroll"><table><thead><tr><th>ORDEM</th><th>CLIENTE</th><th>EQUIPAMENTO</th><th>PRAZO</th><th>STATUS</th><th></th></tr></thead><tbody>${tableRows(data)}</tbody></table><div class="empty-state" hidden><span class="empty-icon">⌕</span><strong>Nenhum resultado encontrado</strong><span>Tente buscar por outro termo.</span></div></div></section>`}
+function isOpenServiceOrder(record){
+  if(window.ancalOrders?.isFinalized(record))return false;
+  if(!record || record.closed===true || record.isClosed===true)return false;
+  const type=String(record.type||'').toLowerCase();
+  const status=String(record.status||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return !['done','cancelled','canceled','closed','finished'].includes(type) && !/concluid|cancelad|encerrad|finalizad/.test(status);
+}
+function getOrderEquipment(record){
+  if(window.ancalEquipment)return window.ancalEquipment.fromOrder(record);
+  if(Array.isArray(record.equipments)&&record.equipments.length)return record.equipments;
+  return [{name:record.equipment,tag:record.tag,serial:record.serial,cnpj:record.cnpj,client:record.client}];
+}
+function orderEquipmentNames(record){return getOrderEquipment(record).map(item=>item.name).join(' · ');}
+function orderEquipmentTags(record){return getOrderEquipment(record).map(item=>item.tag).join(' · ');}
+function orderWorkplace(record){return typeof record.workplace==='string'&&record.workplace.trim()?record.workplace.trim():'Não informado';}
+function orderWorkplaceControl(record){
+  if(portalMode || !isOpenServiceOrder(record))return escapeHtml(orderWorkplace(record));
+  const value=typeof record.workplace==='string'?record.workplace.trim():'';
+  return `<button type="button" class="workplace-display${value?'':' is-empty'}" data-workplace-action="edit" data-workplace-order="${escapeHtml(record.id)}" aria-label="Editar local de trabalho da ${escapeHtml(record.id)}. Atual: ${escapeHtml(orderWorkplace(record))}" title="Editar local de trabalho"><span>${escapeHtml(value||'Adicionar local')}</span><span class="workplace-edit-icon" aria-hidden="true">✎</span></button>`;
+}
+function orderWorkplaceCell(record){return `<td class="os-workplace-cell" data-workplace-cell="${escapeHtml(record.id)}">${orderWorkplaceControl(record)}</td>`;}
+function orderEquipmentDetails(record){
+  return `<ul class="os-equipment-details">${getOrderEquipment(record).map(item=>`<li><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.tag)} · ${escapeHtml(item.serial||'Nº série a informar')}</span></li>`).join('')}</ul>`;
+}
+function tableRows(items){return items.map(r=>`<tr data-search="${escapeHtml((r.id+' '+r.client+' '+r.equipment+' '+r.tag+' '+orderWorkplace(r)).toLowerCase())}"><td class="os-id">${r.id}</td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>${r.cnpj}</span></td><td class="equip-cell">${escapeHtml(r.equipment)}<br><span>${escapeHtml(r.tag)}</span></td>${orderWorkplaceCell(r)}<td>${r.due}</td><td>${pill(r.type,r.status)}</td><td><button class="row-action" data-record="${r.id}" aria-label="Ver ${r.id}">···</button></td></tr>`).join('')}
+function osTable(title='Ordens de serviço recentes',data=records.slice(0,5)){return `<section class="panel table-panel"><div class="panel-heading"><div><h2>${title}</h2><p>Visão geral dos serviços técnicos</p></div><div class="table-tools"><input class="search" placeholder="⌕  Buscar OS ou cliente" aria-label="Buscar"><button class="filter-btn" data-action="filter">☷　Filtros</button><button class="text-link" data-page="ordens">Ver todas　→</button></div></div><div class="table-scroll"><table><thead><tr><th>ORDEM</th><th>CLIENTE</th><th>EQUIPAMENTOS</th><th>LOCAL DE TRABALHO</th><th>PRAZO</th><th>STATUS</th><th></th></tr></thead><tbody>${tableRows(data)}</tbody></table><div class="empty-state" hidden><span class="empty-icon">⌕</span><strong>Nenhum resultado encontrado</strong><span>Tente buscar por outro termo.</span></div></div></section>`}
 function dashboard(){return `${heading('Bom dia, Isabela 👋','Aqui está o resumo da operação técnica do laboratório.',button('↗ Portal do cliente','btn btn-light','portal-view')+button('<span class="plus">＋</span> Nova OS','btn btn-primary','new-os')+button('⇩ Exportar','btn btn-light','export'))}<section class="stats">${stat('OS em andamento','08','<strong>+2</strong> nesta semana','▤')}${stat('Calibrações concluídas','24','<strong>+12%</strong> este mês','⌁','blue')}${stat('Certificados disponíveis','156','atualizados hoje','▧','green')}${stat('Padrões próximos do vencimento','02','requerem atenção','◇','purple')}</section><div class="layout-grid"><section class="panel"><div class="panel-heading"><div><h2>Volume de serviços</h2><p>Ordens técnicas nos últimos 6 meses</p></div><span class="filter-btn chart-period">Últimos 6 meses</span></div><div class="chart-wrap"><div class="chart-tooltip">Setembro<strong>32 serviços</strong></div><svg viewBox="0 0 600 190" preserveAspectRatio="none" aria-label="Gráfico de volume de serviços"><defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f47721" stop-opacity=".16"/><stop offset="1" stop-color="#f47721" stop-opacity="0"/></linearGradient></defs><g class="chart-grid"><line x1="34" y1="25" x2="590" y2="25"/><line x1="34" y1="65" x2="590" y2="65"/><line x1="34" y1="105" x2="590" y2="105"/><line x1="34" y1="145" x2="590" y2="145"/></g><g class="chart-label"><text x="0" y="28">40</text><text x="0" y="68">30</text><text x="0" y="108">20</text><text x="0" y="148">10</text><text x="45" y="177">Mai</text><text x="145" y="177">Jun</text><text x="245" y="177">Jul</text><text x="345" y="177">Ago</text><text x="445" y="177">Set</text><text x="545" y="177">Out</text></g><path class="chart-area" d="M50 118 C82 110 102 84 150 91 S215 105 250 75 S318 89 350 62 S418 53 450 44 S515 68 570 32 L570 150 L50 150 Z"/><path class="chart-line" d="M50 118 C82 110 102 84 150 91 S215 105 250 75 S318 89 350 62 S418 53 450 44 S515 68 570 32"/><circle class="chart-point" cx="450" cy="44" r="4"/></svg></div><div class="chart-legend"><span><i class="legend-dot"></i>Ordens concluídas</span><span><i class="legend-dot gray"></i>Meta mensal</span></div></section><section class="panel"><div class="panel-heading"><div><h2>Visão da operação</h2><p>Status dos serviços técnicos</p></div><button class="text-link" data-page="ordens">Detalhes →</button></div><div class="status-list"><div class="status-row"><div class="status-symbol">▤</div><div><strong>Em calibração</strong><span>Serviços em execução</span></div><b class="status-number">05</b></div><div class="status-row"><div class="status-symbol blue">◷</div><div><strong>Aguardando revisão</strong><span>Validação técnica pendente</span></div><b class="status-number">02</b></div><div class="status-row"><div class="status-symbol purple">⇧</div><div><strong>Aguardando aprovação</strong><span>Prontos para liberação</span></div><b class="status-number">01</b></div><div class="status-row"><div class="status-symbol green">✓</div><div><strong>Concluídas hoje</strong><span>Certificado disponibilizado</span></div><b class="status-number">06</b></div></div></section></div>${osTable()}<div class="lower-grid" style="margin-top:15px"><section class="panel"><div class="panel-heading"><div><h2>Fluxo do serviço técnico</h2><p>Da abertura da OS à entrega do certificado</p></div><span class="pill pill-progress">FLUXO ATIVO</span></div><div class="flow"><div class="flow-step complete"><div class="flow-circle">✓</div><strong>Entrada</strong><span>OS aberta</span></div><div class="flow-step complete"><div class="flow-circle">✓</div><strong>Execução</strong><span>Calibração</span></div><div class="flow-step"><div class="flow-circle">3</div><strong>Revisão</strong><span>Validação</span></div><div class="flow-step"><div class="flow-circle">4</div><strong>Certificado</strong><span>Disponível</span></div></div></section><section class="panel backup-panel"><div class="backup-mark">☁</div><div class="backup-copy"><strong>Backup automático ativo</strong><p>Último backup hoje às 03:00 · Região São Paulo</p><a href="#" data-action="backup">Ver detalhes do armazenamento →</a></div><span class="backup-status">● Protegido</span></section></div><p class="demo-note">* Dados e indicadores ilustrativos para validação dos fluxos. Regras técnicas a confirmar com a equipe ANCAL.</p>`}
-function ordens(){return `${heading('Ordens de serviço','Acompanhe cada etapa dos serviços técnicos.',button('<span class="plus">＋</span> Nova OS','btn btn-primary','new-os'))}${osTable('Todas as ordens de serviço',records)}`}
+function ordens(){if(window.ancalOrders)return window.ancalOrders.render();return `${heading('Ordens de serviço','Acompanhe cada etapa dos serviços técnicos.',button('<span class="plus">＋</span> Nova OS','btn btn-primary','new-os'))}${osTable('Todas as ordens de serviço',records)}`}
 function genericTable(title,desc,headers,rows){return `${heading(title,desc,button('<span class="plus">＋</span> Novo cadastro','btn btn-primary','new-record'))}<section class="panel table-panel section-panel"><div class="panel-heading"><div><h2>${title} cadastrados</h2><p>Dados de demonstração</p></div><div class="table-tools"><input class="search" placeholder="⌕  Buscar" aria-label="Buscar"><button class="filter-btn" data-action="filter">☷　Filtros</button></div></div><div class="table-scroll"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table><div class="empty-state" hidden><span class="empty-icon">⌕</span><strong>Nenhum resultado encontrado</strong><span>Tente buscar por outro termo.</span></div></div></section><p class="demo-note">* Registros ilustrativos. Campos e regras sujeitos à validação com a equipe ANCAL.</p>`}
-function equipmentPage(){const list=records.map((r,i)=>`<tr data-search="${escapeHtml((r.client+' '+r.equipment+' '+r.tag+' '+r.serial).toLowerCase())}"><td class="os-id">${r.tag}</td><td class="equip-cell">${escapeHtml(r.equipment)}</td><td>${({'BAL-024':'Sartorius','PIP-118':'Eppendorf','TH-036':'Testo','TERM-057':'Incoterm','AUTO-012':'Phoenix','PH-009':'Metrohm'}[r.tag]||'A informar')}</td><td>${r.serial.split('·')[0]}</td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>Ribeirão Preto, SP</span></td><td>${r.due}</td><td><button class="row-action" data-record="${r.id}">···</button></td></tr>`).join('');return genericTable('Equipamentos','Cadastro e histórico técnico dos instrumentos atendidos.',['IDENTIFICAÇÃO','EQUIPAMENTO','FABRICANTE','MODELO / Nº SÉRIE','CLIENTE','PRÓXIMA CALIBRAÇÃO',''],list)}
-function padroesPage(){const rows=standards.map((s,i)=>`<tr data-search="${s.join(' ').toLowerCase()}"><td class="os-id">${s[0]}</td><td class="equip-cell">${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${pill(i===2?'wait':'done',s[4])}</td><td><button class="row-action" data-record="${s[0]}">···</button></td></tr>`).join('');return genericTable('Gestão de padrões','Controle de rastreabilidade e validade dos padrões de referência.',['CÓDIGO','PADRÃO DE REFERÊNCIA','IDENTIFICAÇÃO','VALIDADE','STATUS',''],rows)}
-function calibracoesPage(){const list=records.slice(0,5).map((r,i)=>`<tr data-search="${escapeHtml((r.id+' '+r.client+' '+r.equipment).toLowerCase())}"><td class="os-id">CAL-2026-${String(146-i).padStart(3,'0')}</td><td class="equip-cell">${escapeHtml(r.equipment)}<br><span>${r.tag}</span></td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>${r.id}</span></td><td>${i%2?'Calibração externa':'Calibração interna'}</td><td>${['PAD-014 · Massa F1','PAD-009 · Fluke 5627A','PAD-022 · Pipeta ref.'][i%3]}</td><td>${pill(r.type,r.status)}</td><td><button class="row-action" data-record="${r.id}">···</button></td></tr>`).join('');return genericTable('Calibrações','Registros técnicos vinculados às ordens e aos padrões utilizados.',['REGISTRO','INSTRUMENTO','CLIENTE / OS','MÉTODO','PADRÃO UTILIZADO','STATUS',''],list)}
-function certificates(){let list=records.filter(r=>['done','review'].includes(r.type)).map((r,i)=>`<tr data-search="${escapeHtml((r.id+' '+r.client+' '+r.equipment+' certificado').toLowerCase())}"><td><div class="certificate-card"><div class="pdf-icon">PDF</div><div><strong>Certificado ${String(2031-i).padStart(4,'0')}</strong><span>Emitido em ${r.due} · PDF</span></div></div></td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>${r.cnpj}</span></td><td class="equip-cell">${escapeHtml(r.equipment)}<br><span>${r.tag}</span></td><td>${r.id}</td><td>${pill('done','Disponível no portal')}</td><td><button class="btn" data-action="download" data-os="${r.id}">⇩ Baixar</button></td></tr>`).join('');return genericTable('Certificados','Documentos técnicos revisados e disponibilizados aos clientes.',['DOCUMENTO','CLIENTE','EQUIPAMENTO','ORDEM','DISPONIBILIDADE','AÇÃO'],list)}
+function equipmentPage(){if(window.ancalEquipment)return window.ancalEquipment.renderPage();const list=records.map((r,i)=>`<tr data-search="${escapeHtml((r.client+' '+r.equipment+' '+r.tag+' '+r.serial).toLowerCase())}"><td class="os-id">${escapeHtml(r.tag)}</td><td class="equip-cell">${escapeHtml(r.equipment)}</td><td>${({'BAL-024':'Sartorius','PIP-118':'Eppendorf','TH-036':'Testo','TERM-057':'Incoterm','AUTO-012':'Phoenix','PH-009':'Metrohm'}[r.tag]||'A informar')}</td><td>${r.serial.split('·')[0]}</td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>Ribeirão Preto, SP</span></td><td>${r.due}</td><td><button class="row-action" data-record="${r.id}">···</button></td></tr>`).join('');return genericTable('Equipamentos','Cadastro e histórico técnico dos instrumentos atendidos.',['IDENTIFICAÇÃO','EQUIPAMENTO','FABRICANTE','MODELO / Nº SÉRIE','CLIENTE','PRÓXIMA CALIBRAÇÃO',''],list)}
+function padroesPage(){if(window.ancalStandards)return window.ancalStandards.render();const rows=standards.map((s,i)=>`<tr data-search="${s.join(' ').toLowerCase()}"><td class="os-id">${s[0]}</td><td class="equip-cell">${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${pill(i===2?'wait':'done',s[4])}</td><td><button class="row-action" data-record="${s[0]}">···</button></td></tr>`).join('');return (window.ancalExpiry?.devNote()||'')+genericTable('Gestão de padrões','Controle de rastreabilidade e validade dos padrões de referência.',['CÓDIGO','PADRÃO DE REFERÊNCIA','IDENTIFICAÇÃO','VALIDADE','STATUS',''],rows)}
+function calibracoesPage(){if(window.ancalExpiry)return window.ancalExpiry.renderCalibrations();const list=records.slice(0,5).map((r,i)=>`<tr data-search="${escapeHtml((r.id+' '+r.client+' '+r.equipment).toLowerCase())}"><td class="os-id">CAL-2026-${String(146-i).padStart(3,'0')}</td><td class="equip-cell">${escapeHtml(r.equipment)}<br><span>${escapeHtml(r.tag)}</span></td><td class="client-cell"><strong>${escapeHtml(r.client)}</strong><span>${r.id}</span></td><td>${i%2?'Calibração externa':'Calibração interna'}</td><td>${['PAD-014 · Massa F1','PAD-009 · Fluke 5627A','PAD-022 · Pipeta ref.'][i%3]}</td><td>${pill(r.type,r.status)}</td><td><button class="row-action" data-record="${r.id}">···</button></td></tr>`).join('');return genericTable('Calibrações','Registros técnicos vinculados às ordens e aos padrões utilizados.',['REGISTRO','INSTRUMENTO','CLIENTE / OS','MÉTODO','PADRÃO UTILIZADO','STATUS',''],list)}
+function certificates(){
+  if(window.ancalCertificatesUI)return window.ancalCertificatesUI.render();
+  return heading('Certificados','Documentos liberados ao cliente após a assinatura.')+'<section class="panel"><p class="demo-note">O módulo de certificados está indisponível. Recarregue a página para consultar os documentos.</p></section>';
+}
 function clientPage(){if(window.ancalAccess)return window.ancalAccess.renderCompanies();const rows=clients.map((c,i)=>`<tr data-search="${c.join(' ').toLowerCase()}"><td><div class="client-cell"><strong>${c[0]}</strong><span>${c[1]}</span></div></td><td>${c[2]}</td><td>${c[3]}</td><td>${pill('done',c[4])}</td><td><button class="row-action" data-record="${c[0]}">···</button></td></tr>`).join('');return genericTable('Clientes','Empresas atendidas e seus equipamentos vinculados.',['EMPRESA','EQUIPAMENTOS','OS EM ANDAMENTO','SITUAÇÃO',''],rows)}
 function usersPage(){if(window.ancalAccess)return window.ancalAccess.renderUsers();const rows=[['IJ','Isabela Jurado','Área técnica / Qualidade','Administradora','Hoje, 09:42'],['GD','Guilherme Damasio','Gestão','Administrador','Hoje, 09:18'],['MR','Marcos Ribeiro','Laboratório','Técnico','Ontem, 17:36'],['AC','Ana Paula Costa','Laboratório','Técnica','Ontem, 16:20']].map(x=>`<tr data-search="${x.join(' ').toLowerCase()}"><td><strong>${x[0]}</strong>　${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td>${pill('done','Ativo')}</td><td>${x[4]}</td><td><button class="row-action" data-record="${x[1]}">···</button></td></tr>`).join('');return genericTable('Usuários e auditoria','Controle de acesso e histórico de atividades da plataforma.',['USUÁRIO','ÁREA','PERFIL','ACESSO','ÚLTIMA ATIVIDADE',''],rows)}
 function render(){
@@ -39,7 +66,7 @@ function render(){
   const view={dashboard,ordens,equipamentos:equipmentPage,calibracoes:calibracoesPage,padroes:padroesPage,certificados:certificates,clientes:clientPage,usuarios:usersPage}[currentPage]||dashboard;
   app.innerHTML=view();
   const table=app.querySelector('tbody');
-  if(table && demoEntries[currentPage] && !(window.ancalAccess && ['clientes','usuarios'].includes(currentPage))){
+  if(table && demoEntries[currentPage] && currentPage!=='certificados' && !(window.ancalStandards && currentPage==='padroes') && !(window.ancalOrders && currentPage==='ordens') && !(window.ancalAccess && ['clientes','usuarios'].includes(currentPage)) && !(window.ancalEquipment && currentPage==='equipamentos') && !(window.ancalExpiry && currentPage==='calibracoes')){
     const columns=app.querySelectorAll('thead th').length;
     demoEntries[currentPage].forEach(entry=>{
       const cells=Array.from({length:columns},(_,i)=>i===0?`<td class="os-id">${escapeHtml(entry.name)}</td>`:i===columns-1?`<td><button class="row-action" data-record="${escapeHtml(entry.name)}" aria-label="Ver cadastro">···</button></td>`:`<td>${i===1?escapeHtml(entry.notes||'Cadastro de demonstração'):'—'}</td>`).join('');
@@ -50,25 +77,60 @@ function render(){
   document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===currentPage));
   window.ancalClient?.syncShell();
   window.scrollTo(0,0);
+  window.ancalExpiryUI?.afterView();
 }
 function showToast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
 let previousFocus;
-function openModal(title,desc,form){previousFocus=document.activeElement;$('#modalBody').innerHTML=`<h2 id="modalTitle">${escapeHtml(title)}</h2><p>${escapeHtml(desc)}</p>${form}`;$('#modalBackdrop').classList.add('open');$('#modalBody').querySelector('input,select,button')?.focus();}
-function closeModal(){$('#modalBackdrop').classList.remove('open');previousFocus?.focus();}
+function openModal(title,desc,form){previousFocus=document.activeElement;if(window.ancalNavigation){if($('#sidebar').contains(previousFocus))previousFocus=$('#menuToggle');window.ancalNavigation.close({restoreFocus:false});}$('#modalBody').innerHTML=`<h2 id="modalTitle">${escapeHtml(title)}</h2><p>${escapeHtml(desc)}</p>${form}`;$('#modalBackdrop').classList.add('open');$('#modalBody').querySelector('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();}
+function closeModal(){const wasOpen=$('#modalBackdrop').classList.contains('open');$('#modalBackdrop').classList.remove('open');if(wasOpen)previousFocus?.focus();}
 function listClientCompanies(){return window.ancalAccess?.getCompanies() || clients.map(c=>({name:c[0],cnpj:c[1]}));}
-function newOsModal(){openModal('Nova ordem de serviço','Informe os dados iniciais. O registro ficará salvo neste navegador para a demonstração.',`<form id="newOsForm"><div class="form-grid"><div class="field full"><label for="osClient">Cliente</label><select id="osClient" name="client" required><option value="">Selecione uma empresa</option>${listClientCompanies().map(c=>`<option value="${escapeHtml(c.cnpj)}">${escapeHtml(c.name)} · ${escapeHtml(c.cnpj)}</option>`).join('')}</select></div><div class="field full"><label for="osEquipment">Equipamento</label><input id="osEquipment" name="equipment" required maxlength="100" placeholder="Ex.: Balança analítica · BAL-024"></div><div class="field"><label for="osService">Tipo de serviço</label><select id="osService" name="service"><option>Calibração</option><option>Manutenção</option><option>Qualificação térmica</option></select></div><div class="field"><label for="osDue">Prazo previsto</label><input id="osDue" name="due" type="date" required value="2026-11-05"></div><div class="field full"><label for="osNotes">Observações</label><input id="osNotes" name="notes" maxlength="200" placeholder="Informações adicionais (opcional)"></div></div><div class="modal-actions"><button type="button" class="btn" data-action="close-modal">Cancelar</button><button class="btn btn-primary">Criar ordem</button></div></form>`)}
-function recordModal(id){const r=records.find(x=>x.id===id);if(r){openModal(`${r.id} · ${r.equipment}`,`Detalhes ilustrativos da ordem de serviço`, `<div class="record-modal">${pill(r.type,r.status)}<div class="record-detail"><div><span>Cliente</span><strong>${escapeHtml(r.client)}</strong></div><div><span>Equipamento</span><strong>${escapeHtml(r.equipment)} · ${r.tag}</strong></div><div><span>Modelo / nº série</span><strong>${escapeHtml(r.serial)}</strong></div><div><span>Responsável técnico</span><strong>${r.tech}</strong></div><div><span>Prazo</span><strong>${r.due}</strong></div><div><span>Padrão associado</span><strong>PAD-014 · Massa classe F1</strong></div></div><button class="btn btn-primary" data-action="open-calibration">Abrir calibração →</button> <button class="btn" data-action="open-certificates">Ver documentos</button></div>`)}else openModal(id,'Registro de demonstração',`<div class="record-detail"><div><span>Situação</span><strong>Ativo</strong></div><div><span>Próxima ação</span><strong>Consultar histórico técnico</strong></div></div><button class="btn btn-primary" data-action="close-modal">Entendi</button>`)}
+function newOsModal(){
+  if(window.ancalOrders){window.ancalOrders.openForm();return;}
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  openModal('Nova ordem de serviço','Selecione a empresa e os equipamentos cadastrados que farão parte desta ordem.',`<form id="newOsForm"><div class="form-grid"><div class="field full"><label for="osClient">Cliente / empresa</label><select id="osClient" name="client" required><option value="">Selecione uma empresa</option>${listClientCompanies().map(company=>`<option value="${escapeHtml(company.cnpj)}">${escapeHtml(company.name)} · ${escapeHtml(company.cnpj)}</option>`).join('')}</select></div><div class="field full"><div class="os-equipment-label"><label for="osEquipment">Equipamentos da ordem</label><output id="osEquipmentCount" class="os-equipment-count" aria-live="polite">0 selecionados</output></div><select id="osEquipment" name="equipmentIds" multiple size="4" required disabled aria-describedby="osEquipmentHelp osEquipmentState"><option disabled>Selecione uma empresa primeiro</option></select><small id="osEquipmentHelp" class="os-equipment-help">Selecione um ou mais itens. No computador, use Ctrl (Windows) ou ⌘ (Mac) para marcar vários equipamentos.</small><div id="osEquipmentState" class="os-equipment-state" role="status">Os equipamentos serão listados conforme a empresa selecionada.</div></div><div class="field"><label for="osService">Tipo de serviço</label><select id="osService" name="service"><option>Calibração</option><option>Manutenção</option><option>Qualificação térmica</option></select></div><div class="field"><label for="osDue">Prazo previsto</label><input id="osDue" name="due" type="date" required value="${today}"></div><div class="field full"><label for="osWorkplace">Local de trabalho</label><input id="osWorkplace" name="workplace" required maxlength="120" placeholder="Ex.: Laboratório ANCAL ou unidade do cliente" aria-describedby="osWorkplaceHelp"><small id="osWorkplaceHelp" class="os-equipment-help">Informe o local onde os serviços desta ordem serão executados.</small></div><div class="field full"><label for="osNotes">Observações</label><input id="osNotes" name="notes" maxlength="200" placeholder="Informações adicionais (opcional)"></div></div><p id="osFormError" class="os-form-error" role="alert" tabindex="-1" hidden></p><div class="modal-actions"><button type="button" class="btn" data-action="close-modal">Cancelar</button><button class="btn btn-primary" id="osSubmit" disabled>Criar ordem</button></div></form>`);
+}
+function updateOsEquipmentOptions(){
+  const form=$('#newOsForm');
+  if(!form)return;
+  if(form.hasAttribute('data-orders-workspace-form'))return;
+  const cnpj=form.querySelector('#osClient').value;
+  const items=(window.ancalEquipment?.forCompany(cnpj)||[]).filter(item=>item.active!==false);
+  const select=form.querySelector('#osEquipment');
+  select.innerHTML=items.length?items.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.tag)} — ${escapeHtml(item.name)} · ${escapeHtml(item.model||item.serial||'Modelo / série a informar')}</option>`).join(''): `<option disabled>${cnpj?'Nenhum equipamento ativo nesta empresa':'Selecione uma empresa primeiro'}</option>`;
+  select.disabled=!items.length;
+  select.setCustomValidity('');
+  form.querySelector('#osSubmit').disabled=!items.length;
+  form.querySelector('#osEquipmentState').innerHTML=items.length?`${items.length} equipamento(s) ativo(s) nesta empresa.`:cnpj?'Esta empresa não possui equipamentos ativos disponíveis. <button type="button" class="text-link" data-page="equipamentos">Consultar Equipamentos →</button>':'Os equipamentos serão listados conforme a empresa selecionada.';
+  updateOsEquipmentCount();
+}
+function updateOsEquipmentCount(){
+  const select=$('#osEquipment');
+  if(select?.closest('form')?.hasAttribute('data-orders-workspace-form'))return;
+  if(!select)return;
+  const count=select.selectedOptions.length;
+  $('#osEquipmentCount').textContent=count+' '+(count===1?'selecionado':'selecionados');
+  select.setCustomValidity('');
+  const error=$('#osFormError');
+  if(error)error.hidden=true;
+}
+function showOsError(message){
+  const error=$('#osFormError');
+  if(error){error.textContent=message;error.hidden=false;error.focus();}
+}
+function recordModal(id){if(window.ancalOrders){window.ancalOrders.open(id);return;}const r=records.find(x=>x.id===id);if(r){openModal(r.id,`Detalhes ilustrativos da ordem de serviço`, `<div class="record-modal">${pill(r.type,r.status)}<div class="record-detail"><div><span>Cliente</span><strong>${escapeHtml(r.client)}</strong></div><div class="os-equipment-detail-field"><span>Equipamentos da ordem (${getOrderEquipment(r).length})</span>${orderEquipmentDetails(r)}</div><div><span>Local de trabalho</span><strong>${escapeHtml(orderWorkplace(r))}</strong></div><div><span>Responsável técnico</span><strong>${r.tech}</strong></div><div><span>Prazo</span><strong>${r.due}</strong></div><div><span>Padrão associado</span><strong>PAD-014 · Massa classe F1</strong></div></div><button class="btn btn-primary" data-action="open-calibration">Abrir calibração →</button> <button class="btn" data-action="open-certificates">Ver documentos</button></div>`)}else openModal(id,'Registro de demonstração',`<div class="record-detail"><div><span>Situação</span><strong>Ativo</strong></div><div><span>Próxima ação</span><strong>Consultar histórico técnico</strong></div></div><button class="btn btn-primary" data-action="close-modal">Entendi</button>`)}
 function filterRows(input){
   const panel=input.closest('.panel');
   const q=panel.querySelector('.search')?.value.trim().toLowerCase()||'';
   const status=panel.querySelector('.status-filter')?.value||'';
   const period=panel.querySelector('.period-filter')?.value||'';
+  const expiry=panel.querySelector('.client-expiry-filter')?.value||'';
   let count=0;
   panel.querySelectorAll('tbody tr').forEach(row=>{
     const text=(row.dataset.search||row.textContent).toLowerCase();
     const matchesStatus=!status||[...row.querySelectorAll('.pill')].some(p=>p.textContent===status);
     const matchesPeriod=!period||row.dataset.period===period;
-    const show=text.includes(q)&&matchesStatus&&matchesPeriod;
+    const matchesExpiry=!expiry||String(row.dataset.calibrationExpiry||'').split(' ').includes(expiry);
+    const show=text.includes(q)&&matchesStatus&&matchesPeriod&&matchesExpiry;
     row.hidden=!show;
     if(show)count++;
   });
@@ -90,7 +152,7 @@ function newRecordModal(){
   openModal('Novo cadastro · '+pageNames[currentPage],'Cadastre um registro ilustrativo para demonstrar a operação.',`<form id="newRecordForm"><div class="field"><label for="recordName">Nome / identificação</label><input id="recordName" name="name" required maxlength="100" placeholder="Digite um nome"></div><div class="field" style="margin-top:11px"><label for="recordNotes">Descrição</label><input id="recordNotes" name="notes" maxlength="200" placeholder="Informações adicionais"></div><div class="modal-actions"><button type="button" class="btn" data-action="close-modal">Cancelar</button><button class="btn btn-primary">Salvar cadastro</button></div></form>`);
 }
 function showPortal(){window.ancalClient?.show();}
-function closeNav(){$('#sidebar').classList.remove('open');$('#scrim').classList.remove('show');}
+function closeNav(){if(window.ancalNavigation){window.ancalNavigation.close();return;}$('#sidebar').classList.remove('open');$('#scrim').classList.remove('show');}
 document.addEventListener('click',e=>{
   const nav=e.target.closest('[data-page]');
   if(nav){if(portalMode)return;currentPage=nav.dataset.page;closeModal();render();closeNav();return;}
@@ -106,8 +168,7 @@ document.addEventListener('click',e=>{
     case 'export':window.ancalDownloads.exportRecords(records);showToast('Relatório CSV gerado.');break;
     case 'download':{
       if(portalMode){window.ancalClient.download(control.dataset.os);break;}
-      const r=records.find(item=>item.id===control.dataset.os);
-      if(r){window.ancalDownloads.certificate(r);showToast('PDF de demonstração gerado.');}
+      window.ancalCertificateBridge?.download(control.dataset.os);
       break;
     }
     case 'filter':statusFilter(control);break;
@@ -120,9 +181,10 @@ document.addEventListener('click',e=>{
   }
 });
 document.addEventListener('input',e=>{if(e.target.matches('.search'))filterRows(e.target);});
-document.addEventListener('change',e=>{if(e.target.matches('.status-filter,.period-filter'))filterRows(e.target);});
+document.addEventListener('change',e=>{if(e.target.matches('.status-filter,.period-filter,.client-expiry-filter'))filterRows(e.target);if(!portalMode&&e.target.id==='osClient')updateOsEquipmentOptions();if(!portalMode&&e.target.id==='osEquipment')updateOsEquipmentCount();});
 document.addEventListener('submit',e=>{
   if(portalMode){e.preventDefault();return;}
+  if(e.target.hasAttribute('data-orders-workspace-form'))return;
   if(!['newOsForm','newRecordForm'].includes(e.target.id))return;
   e.preventDefault();
   const form=e.target;
@@ -130,12 +192,18 @@ document.addEventListener('submit',e=>{
   const data=new FormData(form);
   if(form.id==='newOsForm'){
     const client=listClientCompanies().find(c=>c.cnpj===data.get('client'));
-    const equipment=String(data.get('equipment')||'').trim();
-    if(!client||!equipment){showToast('Informe o cliente e o equipamento.');return;}
+    const equipmentIds=[...new Set(data.getAll('equipmentIds').map(String))];
+    const available=client?(window.ancalEquipment?.forCompany(client.cnpj)||[]).filter(item=>item.active!==false):[];
+    const selected=equipmentIds.map(id=>available.find(item=>item.id===id));
+    const workplace=String(data.get('workplace')||'').trim();
+    if(!workplace||workplace.length>120){showOsError('Informe o local de trabalho com até 120 caracteres.');return;}
+    if(!client||!selected.length||selected.some(item=>!item)){showOsError('Selecione pelo menos um equipamento cadastrado da empresa escolhida.');return;}
     const number=Math.max(...records.map(r=>Number(r.id.split('-').pop())||0))+1;
     const due=new Date(String(data.get('due'))+'T12:00:00');
     if(Number.isNaN(due.getTime()))return;
-    records.unshift({id:`OS-2026-${String(number).padStart(3,'0')}`,client:client.name,cnpj:client.cnpj,equipment,tag:`NOVO-${number}`,due:due.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}),status:'Aguardando execução',type:'wait',tech:'Isabela Jurado',serial:'A informar',service:String(data.get('service')),notes:String(data.get('notes')||'')});
+    const receivedISO=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+    records.unshift({id:`OS-2026-${String(number).padStart(3,'0')}`,client:client.name,cnpj:client.cnpj,workplace,equipments:selected.map(item=>({...item})),equipment:selected.map(item=>item.name).join(' · '),tag:selected.map(item=>item.tag).join(' · '),due:due.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}),status:'Aguardando execução',type:'wait',tech:'Isabela Jurado',serial:selected.map(item=>item.serial||'A informar').join(' · '),service:String(data.get('service')),notes:String(data.get('notes')||'')});
+    Object.assign(records[0],{receivedISO,dueISO:String(data.get('due'))});
     currentPage='ordens';
   }else{
     const name=String(data.get('name')||'').trim();
@@ -143,13 +211,13 @@ document.addEventListener('submit',e=>{
     (demoEntries[currentPage]||=[]).push({name,notes:String(data.get('notes')||'').trim()});
   }
   saveDemo();closeModal();render();
-  showToast(form.id==='newOsForm'?'Ordem criada e adicionada à lista.':'Cadastro salvo e adicionado à lista.');
+  showToast(form.id==='newOsForm'?'Ordem criada com os equipamentos selecionados.':'Cadastro salvo e adicionado à lista.');
 });
 document.addEventListener('keydown',e=>{
   if(!$('#modalBackdrop').classList.contains('open'))return;
   if(e.key==='Escape'){closeModal();return;}
   if(e.key==='Tab'){
-    const focusable=[...$('#modalBackdrop').querySelectorAll('button,input,select,a[href]')];
+    const focusable=[...$('#modalBackdrop').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')];
     const first=focusable[0],last=focusable.at(-1);
     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
@@ -157,7 +225,7 @@ document.addEventListener('keydown',e=>{
 });
 $('#modalClose').addEventListener('click',closeModal);
 $('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal();});
-$('#menuToggle').addEventListener('click',()=>{$('#sidebar').classList.add('open');$('#scrim').classList.add('show');});
+$('#menuToggle').addEventListener('click',()=>{if(window.ancalNavigation){window.ancalNavigation.toggle();return;}$('#sidebar').classList.add('open');$('#scrim').classList.add('show');});
 $('#closeNav').addEventListener('click',closeNav);
 $('#scrim').addEventListener('click',closeNav);
 $('#helpBtn').addEventListener('click',()=>{if(portalMode){window.ancalClient.help();return;}openModal('Ajuda e suporte','Orientações para a demonstração do sistema.',`<p>Use o menu para consultar registros. Em Nova OS, cadastre um serviço e veja o registro aparecer na lista. No Portal do cliente, consulte e baixe um PDF ilustrativo.</p><button class="btn btn-primary" data-action="close-modal">Entendi</button>`);});

@@ -1,0 +1,40 @@
+/* Equipment catalog and its administrative form. */
+.equipment-panel .panel-heading { gap: 16px; }
+.equipment-panel .equipment-search { width: 235px; max-width: 100%; font-size: 10px; min-height: 34px; }
+.equipment-table th { padding: 12px 15px; font-size: 9px; color: #8a9aa7; }
+.equipment-table td { padding: 14px 15px; font-size: 11px; color: #617584; line-height: 1.55; }
+.equipment-table .equipment-name { color: #3d596b; font-weight: 500; }
+.equipment-table .client-cell strong { font-size: 11px; }
+.equipment-table .client-cell span { font-size: 9px; margin-top: 4px; }
+.equipment-table .pill { font-size: 9px; }
+.equipment-table .btn { min-height: 31px; height: auto; padding: 6px 10px; font-size: 9px; }
+.equipment-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.equipment-row-actions .btn { min-height: 36px; }
+.equipment-pending-note { display: grid; gap: 5px; padding: 14px 17px; margin-bottom: 17px; border: 1px solid #eddcc7; border-radius: 9px; background: #fff8ee; color: #a08462; font-size: 11px; line-height: 1.6; }
+.equipment-pending-note strong { color: #9a723d; font-size: 12px; font-weight: 600; }
+.equipment-note { margin: 13px 0 0; color: #98a6b1; font-size: 10px; line-height: 1.65; }
+#equipmentForm .equipment-field { margin-bottom: 12px; }
+#equipmentForm .field input,
+#equipmentForm .field select { height: 37px; font-size: 11px; }
+#equipmentForm .field label { font-size: 10px; margin-bottom: 6px; }
+#equipmentForm .field small { display: block; margin-top: 5px; color: #a0adb7; font-size: 9px; line-height: 1.5; }
+#equipmentForm .equipment-error { margin: 10px 0 0; padding: 9px 11px; border: 1px solid #f1d4c7; border-radius: 6px; background: #fff4ee; color: #b26644; font-size: 11px; line-height: 1.6; }
+#equipmentForm .equipment-error[hidden] { display: none; }
+#equipmentForm .equipment-copy-field { padding: 12px; margin-bottom: 12px; border: 1px solid #e2e9ee; border-radius: 8px; background: #f7fafc; }
+#equipmentForm .equipment-copy-field label { color: #577287; }
+#equipmentForm .equipment-copy-field label span { color: #99aab7; font-weight: 400; }
+#equipmentForm .equipment-copy-field select { min-width: 0; max-width: 100%; font-size: 10px; }
+#equipmentForm .equipment-copy-note { padding: 10px 12px; margin: 0 0 14px; border: 1px solid #efdfc7; border-radius: 7px; background: #fff8ed; color: #a1845c; font-size: 10px; line-height: 1.7; }
+#equipmentForm .equipment-copy-note[hidden] { display: none; }
+@media (max-width: 700px) {
+  .equipment-panel .panel-heading { flex-wrap: wrap; }
+  .equipment-panel .table-tools { width: 100%; justify-content: flex-start; }
+  .equipment-panel .equipment-search { width: 100%; }
+  .equipment-row-actions .btn { min-height: 44px; }
+  #equipmentForm .equipment-copy-field select { min-height: 42px; }
+}
+@media (max-width: 430px) {
+  #equipmentForm .form-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  #equipmentForm .field.full { grid-column: auto; }
+  .equipment-pending-note { padding: 12px 14px; font-size: 10px; }
+}
