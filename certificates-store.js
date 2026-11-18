@@ -113,7 +113,7 @@
       snapshot.equipmentType = text(raw.equipmentType || raw.type || snapshot.name);
       if (has(raw, 'model') || has(item, 'model')) snapshot.model = text(raw.model || item.model);
       if (has(raw, 'location') || has(item, 'location')) snapshot.location = text(raw.location || item.location);
-      ['clientSector', 'className'].forEach(key => { if (has(raw,key) || has(item,key)) snapshot[key] = text(has(raw,key) ? raw[key] : item[key]); });
+      ['clientSector', 'className', 'certificateObservation'].forEach(key => { if (has(raw,key) || has(item,key)) snapshot[key] = key === 'certificateObservation' ? String((has(raw,key) ? raw[key] : item[key]) ?? '').replace(/\r\n?/g,'\n') : text(has(raw,key) ? raw[key] : item[key]); });
       ['measurementRanges', 'additionalFields'].forEach(key => { if (Array.isArray(raw[key]) || Array.isArray(item[key])) snapshot[key] = copy(Array.isArray(raw[key]) ? raw[key] : item[key]); });
       if (has(raw,'calibrationFrequencyMonths') || has(item,'calibrationFrequencyMonths')) snapshot.calibrationFrequencyMonths = has(raw,'calibrationFrequencyMonths') ? raw.calibrationFrequencyMonths : item.calibrationFrequencyMonths;
       if (has(raw, 'calibrationDateISO')) snapshot.calibrationDateISO = validDate(raw.calibrationDateISO) ? raw.calibrationDateISO : '';
@@ -194,6 +194,20 @@
     if (count === 1 && has(order, 'calibrationDateISO')) return validDate(order.calibrationDateISO) ? order.calibrationDateISO : '';
     return count === 1 && validDate(order.completedISO) ? order.completedISO : '';
   }
+  function observationTechnical(document, order, equipment) {
+    if (document.technical || document.status === 'signed' || document.status === 'cancelled') return null;
+    const technical = window.ancalCertificateTechnical?.defaults(document, order, equipment);
+    return technical?.observations?.text?.trim() ? technical : null;
+  }
+  function getSigningTechnical(id) {
+    if (portal()) return null;
+    const document = state.certificates.find(item => item.id === id);
+    if (!document || document.status !== 'awaiting_signature') return null;
+    if (document.technical) return copy(document.technical);
+    const order = orderSources().find(item => item.id === document.orderId && digits(item.cnpj) === digits(document.cnpj));
+    const equipment = order && extractEquipment(order).find(item => item.id === document.equipmentId);
+    return order && equipment ? observationTechnical(document, order, equipment) : null;
+  }
   function documentFrom(order, item, index, count) {
     const raw = rawItemFor(order, item);
     const base = text(order.certificateId || order.certificateCode) || 'CERT-' + order.id.replace(/^OS-/, '');
@@ -218,6 +232,10 @@
         throw failure;
       }
       document.technical = prepared.value;
+    }
+    if (!document.technical && !['signed','cancelled'].includes(requestedStatus)) {
+      const inherited = observationTechnical(document,order,item);
+      if (inherited) document.technical = inherited;
     }
     if (requestedStatus === 'signed' && incomingSignature && !requiredFields(document)) document.status = 'signed';
     if (document.status === 'awaiting_signature') document.signature = null;
@@ -277,6 +295,10 @@
       if (!prepared.ok) return error(prepared.error);
       document.technical = prepared.value;
     }
+    if (!document.technical) {
+      const inherited = observationTechnical(document,order,equipment);
+      if (inherited) document.technical = inherited;
+    }
     const invalid = requiredFields(document);
     if (invalid) return error(invalid);
     if (!state.orders.some(item => orderKey(item) === orderKey(order))) state.orders.push(copy(order));
@@ -312,6 +334,14 @@
     if (document.status !== 'awaiting_signature') return error(document.status === 'cancelled' ? 'Um certificado cancelado não pode ser assinado.' : 'Este certificado já foi assinado.');
     const invalid = requiredFields(document, id);
     if (invalid) return error(invalid);
+    if (!document.technical) {
+      const inherited = getSigningTechnical(id);
+      if (inherited) {
+        const prepared = normalizeTechnical(inherited, document.calibrationDateISO);
+        if (!prepared.ok) return error(prepared.error);
+        document.technical = prepared.value;
+      }
+    }
     document.status = 'signed';
     document.signature = { actorId: actor.id, name: actor.name, role: actor.role, signedAt: now(), simulated: true };
     audit('Assinatura simulada registrada', id, { code: document.code }); persist();
@@ -379,6 +409,6 @@
   }
 
   load();
-  window.ancalCertificates = { getAll, forCompany, get, forOrder, registerOrders, create, update, sign, cancel, getActor, canSign, setActor, getAudit, getOrders, getEquipmentForOrder };
+  window.ancalCertificates = { getAll, forCompany, get, forOrder, registerOrders, create, update, sign, cancel, getActor, canSign, setActor, getAudit, getOrders, getEquipmentForOrder, getSigningTechnical };
   registerOrders(typeof records !== 'undefined' && Array.isArray(records) ? records : []);
 })();

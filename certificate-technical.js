@@ -99,7 +99,6 @@
       if (monthly ? !validMonth(observations.nextCalibrationISO) : !validDate(observations.nextCalibrationISO)) return monthly ? 'Informe um mês e ano reais para a próxima calibração.' : 'Informe uma data real para a próxima calibração.';
       if (validDate(calibrationDateISO || '') && observations.nextCalibrationISO < (monthly ? calibrationDateISO.slice(0, 7) : calibrationDateISO)) return 'A próxima calibração não pode anteceder a data desta calibração.';
     }
-    if (observations.includeSchedule && !observations.periodicityMonths && !observations.nextCalibrationISO) return 'Informe a periodicidade ou a próxima calibração para repetir essa informação nas observações.';
     if (observations.includeConformity) {
       if (!observations.admissibleDeviation.trim()) return 'Informe o desvio admissível para incluir o parecer de conformidade.';
       if (observations.criterionType !== 'fixed' && !observations.criterionDescription.trim()) return 'Descreva o critério e sua base de avaliação para o parecer percentual ou personalizado.';
@@ -120,6 +119,12 @@
     if (!instrument.location) instrument.location = text(equipment.clientSector);
     const frequency = Number(equipment.calibrationFrequencyMonths);
     const periodicity = Number.isInteger(frequency) && frequency > 0 && frequency <= 1200 ? String(frequency) : '';
+    let certificateObservation = text(equipment.certificateObservation);
+    if (!['signed','cancelled'].includes(certificate.status) && equipment.id && typeof window.ancalEquipment?.get === 'function') {
+      const current = window.ancalEquipment.get(equipment.id);
+      const owner = window.ancalIdentity?.key(order.cnpj || certificate.cnpj || equipment.cnpj);
+      if (current && current.id === equipment.id && window.ancalIdentity?.key(current.cnpj) === owner && Object.hasOwn(current,'certificateObservation')) certificateObservation = text(current.certificateObservation);
+    }
     const additional = Array.isArray(equipment.additionalFields) ? equipment.additionalFields.map(field => `${text(field.label)}: ${text(field.value)}`).join('\n') : '';
     const ownerKey = window.ancalIdentity?.key(order.cnpj || certificate.cnpj) || order.cnpj || certificate.cnpj;
     const requester = order.customerSnapshot || window.ancalAccess?.getCompanies().find(company => (window.ancalIdentity?.key(company.cnpj) || company.cnpj) === ownerKey) || {};
@@ -132,7 +137,7 @@
       templateId,
       parties: { requesterName: requester.legalName || requester.name || order.client || certificate.client || '', requesterCnpj: order.cnpj || certificate.cnpj || '', requesterAddress: order.requesterAddress || order.clientAddress || address(requester), customerSameAsRequester: sameParty, customerName: customer.legalName || customer.name || '', customerCnpj: customer.cnpj || '', customerAddress: address(customer) },
       instrument, supplement: additional,
-      standards: [], results: { unit: '', rows: [blankRow()] }, observations: { includeConformity: false, decision: 'not_declared', showValidity, periodicityMonths: periodicity, includeSchedule: Boolean(periodicity) && showValidity }
+      standards: [], results: { unit: '', rows: [blankRow()] }, observations: { text: certificateObservation, includeConformity: false, decision: 'not_declared', showValidity, periodicityMonths: periodicity, includeSchedule: Boolean(periodicity) && showValidity }
     });
   }
 
@@ -195,7 +200,7 @@
     const issuerForm='<details class="certificate-technical-section"><summary>Laboratório emitente e rodapé</summary><div class="certificate-technical-section-body"><p class="certificate-technical-help">Somente os dados preenchidos serão exibidos no rodapé deste certificado. Clientes e solicitantes permanecem separados do laboratório emitente.</p><div class="certificate-technical-grid">'+fields.issuer.map(key=>input('issuer.'+key,issuerLabels[key],technical.issuer[key],{full:key==='address'})).join('')+'</div></div></details>';
     const partiesForm = `<p class="certificate-technical-help">O solicitante é quem contrata e envia o instrumento. O cliente final pode ser outra empresa; isso não altera a empresa responsável pela OS nem concede acesso ao portal.</p><div class="certificate-technical-grid">${input('parties.requesterName', 'Solicitante / empresa contratante', parties.requesterName, { full: true })}${input('parties.requesterCnpj', 'CPF/CNPJ do solicitante', parties.requesterCnpj)}${input('parties.requesterAddress', 'Endereço do solicitante', parties.requesterAddress, { full: true })}</div>${checkbox('parties.customerSameAsRequester', 'Cliente final é o próprio solicitante', parties.customerSameAsRequester)}<div class="certificate-technical-grid" data-technical-customer${parties.customerSameAsRequester ? ' hidden' : ''}>${input('parties.customerName', 'Cliente final', parties.customerName, { full: true })}${input('parties.customerCnpj', 'CPF/CNPJ do cliente final', parties.customerCnpj)}${input('parties.customerAddress', 'Endereço do cliente final', parties.customerAddress, { full: true })}</div>`;
     const instrumentLabels = { quantity: 'Quantidade', manufacturer: 'Fabricante', model: 'Modelo', range: 'Faixa de indicação', resolution: 'Resolução', location: 'Localização do instrumento', className: 'Classe', calibrationPlace: 'Local da calibração', capacityMin: 'Capacidade mínima', capacityMax: 'Capacidade máxima', division: 'Divisão' };
-    const instrumentForm = `<p class="certificate-technical-help">Dados específicos deste certificado. O cadastro do equipamento e a OS permanecem preservados.</p><div class="certificate-technical-grid">${fields.instrument.map(key => input(`instrument.${key}`, instrumentLabels[key], instrument[key])).join('')}${select('observations.nextCalibrationPrecision', 'Precisão da próxima calibração', selected.nextCalibrationPrecision, [['day', 'Dia, mês e ano'], ['month', 'Mês e ano']])}${input('observations.nextCalibrationISO', 'Próxima calibração', selected.nextCalibrationISO, { type: selected.nextCalibrationPrecision === 'month' ? 'month' : 'date', help: 'Exibida nos dados do instrumento; pode ser repetida nas observações. A precisão escolhida será preservada.' })}</div>`;
+    const instrumentForm = `<p class="certificate-technical-help">Dados específicos deste certificado. O cadastro do equipamento e a OS permanecem preservados.</p><div class="certificate-technical-grid">${fields.instrument.map(key => input(`instrument.${key}`, instrumentLabels[key], instrument[key])).join('')}${window.ancalOptionalDate.render({id:'ct-observations-nextCalibrationISO',name:'technical_observations_nextCalibrationISO',label:'Próxima calibração',value:selected.nextCalibrationISO,field:'observations.nextCalibrationISO',precisionField:'observations.nextCalibrationPrecision',help:'Dia opcional. Somente mês e ano: exibe MM/AAAA. Tudo vazio: não aparece no certificado.'})}</div>`;
     const environmentLabels = { temperature: 'Temperatura ambiente', pressure: 'Pressão barométrica', humidity: 'Umidade relativa', liquidTemperature: 'Temperatura do líquido' };
     const standardsForm = `<div class="certificate-technical-scroll"><table class="certificate-technical-table"><thead><tr><th>Código</th><th>Descrição</th><th>Certificado</th><th>Rastreabilidade</th><th>Validade</th><th></th></tr></thead><tbody data-technical-rows="standards">${technical.standards.map(standardRow).join('')}</tbody></table></div><button type="button" class="btn certificate-technical-add" data-technical-add="standards">＋ Adicionar padrão</button><small class="certificate-technical-help">Até 20 padrões. Informe a rastreabilidade utilizada nesta calibração.</small>`;
     const columns = template(technical.templateId).columns;
@@ -214,6 +219,7 @@
   function read(formElement) {
     const root = formElement.matches?.('[data-certificate-technical]') ? formElement : formElement.querySelector('[data-certificate-technical]');
     if (!root) return null;
+    for(const picker of root.querySelectorAll('[data-optional-date]')) { if(!window.ancalOptionalDate.sync(picker).ok){picker.closest('details')?.setAttribute('open','');return null;} }
     const value = {};
     root.querySelectorAll('[data-technical-field]').forEach(control => assign(value, control.dataset.technicalField, control.type === 'checkbox' ? control.checked : control.value));
     value.standards = Array.from(root.querySelectorAll('[data-technical-row="standards"]')).map(row => Object.fromEntries(Array.from(row.querySelectorAll('[data-technical-cell]')).map(control => [control.dataset.technicalCell, control.value])));
@@ -239,7 +245,7 @@
     const standards = technical.standards.length ? `<div class="certificate-technical-scroll"><table class="certificate-technical-table certificate-technical-readonly-table"><thead><tr><th>Código</th><th>Descrição</th><th>Certificado</th><th>Rastreabilidade</th><th>Validade</th></tr></thead><tbody>${technical.standards.map(standard => `<tr>${fields.standards.map(key => `<td>${h(key === 'validUntilISO' ? dateLabel(standard[key]) : standard[key]) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '<p class="certificate-technical-blank">Padrões não informados.</p>';
     const results = technical.results.rows.length ? `<div class="certificate-technical-scroll"><table class="certificate-technical-table certificate-technical-readonly-table"><thead><tr>${columns.map(column => `<th>${h(column.label)}</th>`).join('')}</tr></thead><tbody>${technical.results.rows.map(row => `<tr>${columns.map(column => `<td>${h(row[column.key]) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '<p class="certificate-technical-blank">Resultados não informados.</p>';
     const observationLines = observations(technical);
-    return `<div class="certificate-technical-detail"><div class="certificate-technical-detail-heading"><strong>Conteúdo técnico do certificado</strong><span>${h(template(technical.templateId).label)}</span></div>${readonlySection(1, 'Dados do solicitante e cliente final', definitionList([['Solicitante', parties.requesterName], ['CPF/CNPJ do solicitante', parties.requesterCnpj], ['Endereço do solicitante', parties.requesterAddress], ['Cliente final', parties.customerName], ['CPF/CNPJ do cliente final', parties.customerCnpj], ['Endereço do cliente final', parties.customerAddress]]))}${readonlySection(2, 'Dados do instrumento calibrado', definitionList([['Instrumento', certificate.equipmentName], ['Identificação', certificate.tag], ['Número de série', certificate.serial], ['Fabricante', instrument.manufacturer], ['Modelo', instrument.model], ['Faixa de indicação', instrument.range], ['Resolução', instrument.resolution], ['Localização', instrument.location], ['Classe', instrument.className], ['Local da calibração', instrument.calibrationPlace], ['Capacidade mínima', instrument.capacityMin], ['Capacidade máxima', instrument.capacityMax], ['Divisão', instrument.division], ['Ordem de serviço', certificate.orderId], ['Data da calibração', dateLabel(certificate.calibrationDateISO)], ...(technical.observations.showValidity ? [['Próxima calibração', dateLabel(technical.observations.nextCalibrationISO)]] : [])]))}${readonlySection(3, 'Dados do ambiente', definitionList([['Temperatura ambiente', environment.temperature], ['Pressão barométrica', environment.pressure], ['Umidade relativa', environment.humidity], ['Temperatura do líquido', environment.liquidTemperature]]))}${readonlySection(4, 'Padrões utilizados', standards)}${readonlySection(5, 'Procedimento', `<p class="certificate-technical-prose">${h(technical.procedure) || '<span class="certificate-technical-blank">Procedimento não informado.</span>'}</p>`)}${readonlySection(6, 'Resultados da calibração', `${technical.results.unit ? `<p class="certificate-technical-unit">Unidade: ${h(technical.results.unit)}</p>` : ''}${results}`)}${readonlySection(7, 'Observações', `<div class="certificate-technical-prose">${observationLines.length ? observationLines.map(line => `<p>${h(line) || '<br>'}</p>`).join('') : '<p class="certificate-technical-blank">Observações não informadas.</p>'}${technical.supplement ? `<p><strong>Complemento:</strong></p><p>${h(technical.supplement)}</p>` : ''}</div>`)}</div>`;
+    return `<div class="certificate-technical-detail"><div class="certificate-technical-detail-heading"><strong>Conteúdo técnico do certificado</strong><span>${h(template(technical.templateId).label)}</span></div>${readonlySection(1, 'Dados do solicitante e cliente final', definitionList([['Solicitante', parties.requesterName], ['CPF/CNPJ do solicitante', parties.requesterCnpj], ['Endereço do solicitante', parties.requesterAddress], ['Cliente final', parties.customerName], ['CPF/CNPJ do cliente final', parties.customerCnpj], ['Endereço do cliente final', parties.customerAddress]]))}${readonlySection(2, 'Dados do instrumento calibrado', definitionList([['Instrumento', certificate.equipmentName], ['Identificação', certificate.tag], ['Número de série', certificate.serial], ['Fabricante', instrument.manufacturer], ['Modelo', instrument.model], ['Faixa de indicação', instrument.range], ['Resolução', instrument.resolution], ['Localização', instrument.location], ['Classe', instrument.className], ['Local da calibração', instrument.calibrationPlace], ['Capacidade mínima', instrument.capacityMin], ['Capacidade máxima', instrument.capacityMax], ['Divisão', instrument.division], ['Ordem de serviço', certificate.orderId], ['Data da calibração', dateLabel(certificate.calibrationDateISO)], ...(technical.observations.showValidity && technical.observations.nextCalibrationISO ? [['Próxima calibração', dateLabel(technical.observations.nextCalibrationISO)]] : [])]))}${readonlySection(3, 'Dados do ambiente', definitionList([['Temperatura ambiente', environment.temperature], ['Pressão barométrica', environment.pressure], ['Umidade relativa', environment.humidity], ['Temperatura do líquido', environment.liquidTemperature]]))}${readonlySection(4, 'Padrões utilizados', standards)}${readonlySection(5, 'Procedimento', `<p class="certificate-technical-prose">${h(technical.procedure) || '<span class="certificate-technical-blank">Procedimento não informado.</span>'}</p>`)}${readonlySection(6, 'Resultados da calibração', `${technical.results.unit ? `<p class="certificate-technical-unit">Unidade: ${h(technical.results.unit)}</p>` : ''}${results}`)}${readonlySection(7, 'Observações', `<div class="certificate-technical-prose">${observationLines.length ? observationLines.map(line => `<p>${h(line) || '<br>'}</p>`).join('') : '<p class="certificate-technical-blank">Observações não informadas.</p>'}${technical.supplement ? `<p><strong>Complemento:</strong></p><p>${h(technical.supplement)}</p>` : ''}</div>`)}</div>`;
   }
 
   function bind(formElement, certificate) { contexts.set(formElement, certificate || {}); }
@@ -258,25 +264,6 @@
       if (!root || (typeof portalMode !== 'undefined' && portalMode)) return;
       if (control.dataset.technicalField === 'parties.customerSameAsRequester') root.querySelector('[data-technical-customer]').hidden = control.checked;
       if (control.dataset.technicalField === 'observations.includeConformity') root.querySelector('[data-technical-conformity]').hidden = !control.checked;
-      if (control.dataset.technicalField === 'observations.nextCalibrationPrecision') {
-        const date = root.querySelector('[data-technical-field="observations.nextCalibrationISO"]');
-        const previous = date.value;
-        const help = date.parentElement.querySelector('small');
-        if (control.value === 'month') {
-          if (validDate(previous)) date.dataset.dayBackup = previous;
-          const month = validDate(previous) ? previous.slice(0, 7) : validMonth(previous) ? previous : date.dataset.monthBackup || '';
-          date.type = 'month';
-          date.value = month;
-          help.textContent = 'Somente mês e ano serão exibidos. Nenhum dia será acrescentado ao certificado.';
-        } else {
-          if (validMonth(previous)) date.dataset.monthBackup = previous;
-          const backup = date.dataset.dayBackup || '';
-          const restored = validDate(previous) ? previous : validDate(backup) && backup.slice(0, 7) === previous ? backup : '';
-          date.type = 'date';
-          date.value = restored;
-          help.textContent = restored ? 'A data completa anteriormente informada para este mês foi preservada.' : 'Informe o dia, mês e ano. A indicação anterior de mês e ano permanece guardada enquanto este editor estiver aberto; nenhum dia foi criado.';
-        }
-      }
       if (control.dataset.technicalField === 'templateId') {
         const columns = template(control.value).columns;
         root.querySelectorAll('[data-technical-column]').forEach(cell => {
@@ -317,8 +304,12 @@
         const formElement = root.closest('form');
         const certificate = contexts.get(formElement) || {};
         const region = root.querySelector('[data-technical-preview-region]');
-        region.innerHTML = detail({ ...certificate, code: formElement.querySelector('[name="code"]')?.value ?? certificate.code, calibrationDateISO: formElement.querySelector('[name="calibrationDateISO"]')?.value ?? certificate.calibrationDateISO, activityType: formElement.querySelector('[name="activityType"]')?.value ?? certificate.activityType, technical: read(root) });
+        const previewTechnical=read(root);
+        if(!previewTechnical)return editorError(root,'Revise os seletores da próxima calibração. Selecione mês e ano; o dia é opcional.');
+        window.ancalSignatureImages?.dispose(region);
+        region.innerHTML = detail({ ...certificate, code: formElement.querySelector('[name="code"]')?.value ?? certificate.code, calibrationDateISO: formElement.querySelector('[name="calibrationDateISO"]')?.value ?? certificate.calibrationDateISO, activityType: formElement.querySelector('[name="activityType"]')?.value ?? certificate.activityType, technical: previewTechnical });
         region.hidden = false;
+        window.ancalSignatureImages?.hydrate(region);
         region.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });

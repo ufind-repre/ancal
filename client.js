@@ -77,6 +77,7 @@
   const calibrationId = record => record.id.replace('OS-', 'CAL-');
   function formatDate(iso) {
     if (!iso) return 'A definir';
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(iso) && Number(iso.slice(0, 4)) >= 1000) return iso.slice(5, 7) + '/' + iso.slice(0, 4);
     const date = new Date(iso + 'T12:00:00');
     return Number.isNaN(date.getTime()) ? 'A definir' : date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   }

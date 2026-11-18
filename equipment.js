@@ -8,6 +8,8 @@
   const validOwner = value => window.ancalIdentity ? window.ancalIdentity.validDocument(value) : [11,14].includes(digits(value).length);
   const clean = value => String(value == null ? '' : value).trim();
   const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(value+'T12:00:00Z').getTime()) && new Date(value+'T12:00:00Z').toISOString().slice(0,10) === value;
+  const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value) && Number(value.slice(0, 4)) >= 1000 && validDate(value + '-01');
+  const validNextCalibration = value => validDate(value) || validMonth(value);
   const tagKey = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const cnpjText = value => window.ancalIdentity ? window.ancalIdentity.format(value) : digits(value).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   const stableId = (cnpj, tag) => validOwner(cnpj) && tagKey(tag) ? digits(cnpj) + '-' + tagKey(tag) : '';
@@ -21,11 +23,11 @@
     '12345678000190-term-045': 'Incoterm',
     '45890123000117-cent-018': 'Fanem'
   };
-  const optionalText = ['model', 'clientSector', 'className', 'observations'];
+  const optionalText = ['model', 'clientSector', 'className', 'observations', 'certificateObservation'];
   const optionalFields = [...optionalText, 'active', 'calibrationFrequencyMonths', 'measurementRanges', 'additionalFields', 'nextCalibrationISO'];
   const rangeFields = ['tableId', 'label', 'min', 'max', 'unit', 'resolution'];
   const editableFields = ['name', 'manufacturer', 'serial', ...optionalFields];
-  const textLimits = { name: 120, tag: 60, manufacturer: 100, serial: 160, model: 160, clientSector: 160, className: 100, observations: 5000 };
+  const textLimits = { name: 120, tag: 60, manufacturer: 100, serial: 160, model: 160, clientSector: 160, className: 100, observations: 5000, certificateObservation: 5000 };
   let catalog = [];
   let completedLegacyKeys = [];
   let storageExtras = {};
@@ -60,14 +62,14 @@
       serial: clean(snapshot.serial == null ? order.serial : snapshot.serial),
       manufacturer: clean(snapshot.manufacturer == null ? order.manufacturer : snapshot.manufacturer) || metadata[id] || ''
     };
-    optionalText.forEach(key => { if (Object.hasOwn(snapshot, key)) item[key] = key === 'observations' ? String(snapshot[key] == null ? '' : snapshot[key]).replace(/\r\n?/g, '\n') : clean(snapshot[key]); });
+    optionalText.forEach(key => { if (Object.hasOwn(snapshot, key)) item[key] = ['observations','certificateObservation'].includes(key) ? String(snapshot[key] == null ? '' : snapshot[key]).replace(/\r\n?/g, '\n') : clean(snapshot[key]); });
     if (Object.hasOwn(snapshot, 'active')) item.active = snapshot.active === true;
     if (Object.hasOwn(snapshot, 'calibrationFrequencyMonths')) {
       const frequency = Number(snapshot.calibrationFrequencyMonths);
       if (Number.isInteger(frequency) && frequency >= 0 && frequency <= 1200) item.calibrationFrequencyMonths = frequency;
       else delete item.calibrationFrequencyMonths;
     }
-    if (Object.hasOwn(snapshot, 'nextCalibrationISO')) item.nextCalibrationISO = validDate(clean(snapshot.nextCalibrationISO)) ? clean(snapshot.nextCalibrationISO) : '';
+    if (Object.hasOwn(snapshot, 'nextCalibrationISO')) item.nextCalibrationISO = validNextCalibration(clean(snapshot.nextCalibrationISO)) ? clean(snapshot.nextCalibrationISO) : '';
     if (Object.hasOwn(snapshot, 'measurementRanges')) item.measurementRanges = (Array.isArray(snapshot.measurementRanges) ? snapshot.measurementRanges : []).filter(row => row && typeof row === 'object' && !Array.isArray(row)).map(row => ({
       ...(preserveUnknown ? clone(row) : {}), ...Object.fromEntries(rangeFields.map(key => [key, clean(row[key])]))
     }));
@@ -155,12 +157,12 @@
   }
   function validate(values) {
     for (const [key, limit] of Object.entries(textLimits)) {
-      if (Object.hasOwn(values, key) && (typeof values[key] !== 'string' || values[key].length > limit)) return `Revise o campo ${key === 'observations' ? 'observações' : key}; o limite é de ${limit} caracteres.`;
+      if (Object.hasOwn(values, key) && (typeof values[key] !== 'string' || values[key].length > limit)) return `Revise o campo ${key === 'observations' ? 'observações' : key === 'certificateObservation' ? 'observação do certificado' : key}; o limite é de ${limit} caracteres.`;
     }
     if (!clean(values.name) || !clean(values.tag) || !tagKey(values.tag)) return 'Informe o nome e uma identificação válida para o equipamento.';
     if (Object.hasOwn(values, 'active') && typeof values.active !== 'boolean') return 'Informe uma situação ativa ou inativa válida.';
     if (Object.hasOwn(values, 'calibrationFrequencyMonths') && (typeof values.calibrationFrequencyMonths !== 'number' || !Number.isInteger(values.calibrationFrequencyMonths) || values.calibrationFrequencyMonths < 0 || values.calibrationFrequencyMonths > 1200)) return 'A frequência de calibração deve ser um número inteiro entre 0 e 1.200 meses.';
-    if (Object.hasOwn(values, 'nextCalibrationISO') && (typeof values.nextCalibrationISO !== 'string' || (values.nextCalibrationISO && !validDate(values.nextCalibrationISO)))) return 'Informe uma data válida para a próxima calibração.';
+    if (Object.hasOwn(values, 'nextCalibrationISO') && (typeof values.nextCalibrationISO !== 'string' || (values.nextCalibrationISO && !validNextCalibration(values.nextCalibrationISO)))) return 'Informe uma data ou mês e ano válidos para a próxima calibração.';
     if (Object.hasOwn(values, 'measurementRanges')) {
       if (!Array.isArray(values.measurementRanges) || values.measurementRanges.length > 25) return 'Informe até 25 faixas de medição.';
       for (const row of values.measurementRanges) {
@@ -238,7 +240,11 @@
     if (field) { field.textContent = message; field.hidden = false; field.focus(); }
   }
   function sourceById(id) { return catalog.find(item => item.id === id && !item.incomplete && complete(item)); }
-  function sourceDate(item) { return item && Object.hasOwn(item, 'nextCalibrationISO') && validDate(clean(item.nextCalibrationISO)) ? clean(item.nextCalibrationISO) : ''; }
+  function sourceDate(item) { return item && Object.hasOwn(item, 'nextCalibrationISO') && validNextCalibration(clean(item.nextCalibrationISO)) ? clean(item.nextCalibrationISO) : ''; }
+  function nextCalibrationPicker(value) {
+    const options = { id: 'equipmentNextCalibration', name: 'nextCalibrationISO', label: 'Próxima calibração', value, help: 'Informe mês e ano; selecione o dia somente quando ele for conhecido. Sem preenchimento, ficará sem previsão.' };
+    return `<div class="field equipment-field">${window.ancalOptionalDate?.render ? window.ancalOptionalDate.render(options) : `<label for="equipmentNextCalibration">Próxima calibração</label><input id="equipmentNextCalibration" name="nextCalibrationISO" type="text" value="${h(value)}" placeholder="AAAA-MM ou AAAA-MM-DD"><small>${h(options.help)}</small>`}</div>`;
+  }
   function copyNote(item) { return item ? `Baseado em ${item.tag}. Revise a identificação, número de série e data da próxima calibração.` : ''; }
   function openForm(id, sourceId = '') {
     if (portalMode) return;
@@ -250,7 +256,7 @@
     const options = companies();
     const sourceCompany = source ? options.find(company => digits(company.cnpj) === digits(source.cnpj)) : null;
     const copyField = item ? '' : `<div class="field full equipment-field equipment-copy-field"><label for="equipmentCopySource">Copiar de equipamento cadastrado <span>(opcional)</span></label><select id="equipmentCopySource" name="equipmentCopySource" aria-describedby="equipmentCopyNote"><option value="">Começar sem cópia</option>${catalog.filter(entry => !entry.incomplete && complete(entry)).map(entry => `<option value="${h(entry.id)}" ${entry.id === source?.id ? 'selected' : ''}>${h(entry.name)} · ${h(entry.tag)} · ${h(entry.client)} · ${h(entry.cnpj)}</option>`).join('')}</select><small>Escolha uma base para preencher os dados e informe uma nova identificação.</small></div><p id="equipmentCopyNote" class="equipment-copy-note" aria-live="polite" ${source ? '' : 'hidden'}>${h(copyNote(source))}</p>`;
-    openModal(item ? 'Completar cadastro do equipamento' : 'Novo equipamento', 'Identifique a empresa e o instrumento para utilizá-lo nas ordens de serviço.', `<form id="equipmentForm" data-equipment-edit-id="${h(item?.id || '')}" data-equipment-copy-source-id="${h(source?.id || '')}">${copyField}<div class="field full equipment-field"><label for="equipmentCompany">Empresa</label><select id="equipmentCompany" name="cnpj" required><option value="">Selecione uma empresa</option>${options.map(company => `<option value="${h(company.cnpj)}" ${sourceCompany && digits(company.cnpj) === digits(sourceCompany.cnpj) ? 'selected' : ''}>${h(company.name)} · ${h(company.cnpj)}</option>`).join('')}</select></div><div class="form-grid"><div class="field full equipment-field"><label for="equipmentName">Nome do equipamento</label><input id="equipmentName" name="name" required maxlength="120" value="${h(source?.name || item?.name || '')}" placeholder="Ex.: Balança analítica"></div><div class="field equipment-field"><label for="equipmentTag">Identificação / tag</label><input id="equipmentTag" name="tag" required maxlength="60" value="" placeholder="Ex.: BAL-025"><small>Única para esta empresa.</small></div><div class="field equipment-field"><label for="equipmentManufacturer">Fabricante</label><input id="equipmentManufacturer" name="manufacturer" maxlength="100" value="${h(source?.manufacturer || '')}" placeholder="Ex.: Sartorius"></div><div class="field full equipment-field"><label for="equipmentSerial">Modelo / número de série</label><input id="equipmentSerial" name="serial" maxlength="160" value="${h(source?.serial || '')}" placeholder="Ex.: AS220 · 9234K120"></div></div><div class="field equipment-field"><label for="equipmentNextCalibration">Próxima calibração</label><input id="equipmentNextCalibration" name="nextCalibrationISO" type="date" value="${h(sourceDate(source))}"><small>Data de vencimento da calibração do equipamento. Se não informada, ficará sem previsão.</small></div><p class="equipment-error" role="alert" tabindex="-1" hidden></p><p class="equipment-note">Cadastro de demonstração salvo neste navegador.</p><div class="modal-actions">${action('Cancelar', 'close')}<button type="submit" class="btn btn-primary">Salvar equipamento</button></div></form>`);
+    openModal(item ? 'Completar cadastro do equipamento' : 'Novo equipamento', 'Identifique a empresa e o instrumento para utilizá-lo nas ordens de serviço.', `<form id="equipmentForm" data-equipment-edit-id="${h(item?.id || '')}" data-equipment-copy-source-id="${h(source?.id || '')}">${copyField}<div class="field full equipment-field"><label for="equipmentCompany">Empresa</label><select id="equipmentCompany" name="cnpj" required><option value="">Selecione uma empresa</option>${options.map(company => `<option value="${h(company.cnpj)}" ${sourceCompany && digits(company.cnpj) === digits(sourceCompany.cnpj) ? 'selected' : ''}>${h(company.name)} · ${h(company.cnpj)}</option>`).join('')}</select></div><div class="form-grid"><div class="field full equipment-field"><label for="equipmentName">Nome do equipamento</label><input id="equipmentName" name="name" required maxlength="120" value="${h(source?.name || item?.name || '')}" placeholder="Ex.: Balança analítica"></div><div class="field equipment-field"><label for="equipmentTag">Identificação / tag</label><input id="equipmentTag" name="tag" required maxlength="60" value="" placeholder="Ex.: BAL-025"><small>Única para esta empresa.</small></div><div class="field equipment-field"><label for="equipmentManufacturer">Fabricante</label><input id="equipmentManufacturer" name="manufacturer" maxlength="100" value="${h(source?.manufacturer || '')}" placeholder="Ex.: Sartorius"></div><div class="field full equipment-field"><label for="equipmentSerial">Modelo / número de série</label><input id="equipmentSerial" name="serial" maxlength="160" value="${h(source?.serial || '')}" placeholder="Ex.: AS220 · 9234K120"></div></div>${nextCalibrationPicker(sourceDate(source))}<p class="equipment-error" role="alert" tabindex="-1" hidden></p><p class="equipment-note">Cadastro de demonstração salvo neste navegador.</p><div class="modal-actions">${action('Cancelar', 'close')}<button type="submit" class="btn btn-primary">Salvar equipamento</button></div></form>`);
     const form = document.querySelector('#equipmentForm');
     if (form) formSessions.set(form, { editId: item?.id || '', copySourceId: source?.id || '' });
   }
@@ -271,6 +277,8 @@
     const company = source ? companies().find(entry => digits(entry.cnpj) === digits(source.cnpj)) : null;
     const values = { equipmentCompany: company?.cnpj || '', equipmentName: source?.name || '', equipmentTag: '', equipmentManufacturer: source?.manufacturer || '', equipmentSerial: source?.serial || '', equipmentNextCalibration: sourceDate(source) };
     Object.entries(values).forEach(([id, value]) => { const field = form.querySelector('#' + id); if (field) field.value = value; });
+    const picker = form.querySelector('#equipmentNextCalibration')?.closest('[data-optional-date]');
+    if (picker && window.ancalOptionalDate?.render) picker.outerHTML = window.ancalOptionalDate.render({ id: 'equipmentNextCalibration', name: 'nextCalibrationISO', label: 'Próxima calibração', value: sourceDate(source), help: 'Informe mês e ano; selecione o dia somente quando ele for conhecido. Sem preenchimento, ficará sem previsão.' });
     const note = form.querySelector('#equipmentCopyNote');
     if (note) { note.textContent = copyNote(source); note.hidden = !source; }
     const error = form.querySelector('.equipment-error');
@@ -288,12 +296,16 @@
   }
   function submit(form) {
     if (form.hasAttribute?.('data-equipment-workspace-form')) return;
-    if (portalMode || !form.reportValidity()) return;
+    if (portalMode) return;
+    const picker = form.querySelector('#equipmentNextCalibration')?.closest('[data-optional-date]');
+    const selectedDate = picker && window.ancalOptionalDate?.sync ? window.ancalOptionalDate.sync(picker) : null;
+    if (selectedDate && !selectedDate.ok) return showError(form, selectedDate.error);
+    if (!form.reportValidity()) return;
     const data = new FormData(form);
     const company = companies().find(entry => digits(entry.cnpj) === digits(data.get('cnpj')));
     const name = clean(data.get('name')), tag = clean(data.get('tag'));
     const manufacturer = clean(data.get('manufacturer')), serial = clean(data.get('serial'));
-    const nextCalibrationISO = clean(data.get('nextCalibrationISO'));
+    const nextCalibrationISO = selectedDate ? selectedDate.value : clean(data.get('nextCalibrationISO'));
     const editId = clean(form.dataset.equipmentEditId);
     const copySourceId = clean(form.dataset.equipmentCopySourceId);
     const session = formSessions.get(form);
@@ -304,7 +316,7 @@
     if (!company || !validOwner(company.cnpj)) { showError(form, 'Selecione um cliente cadastrado.'); return; }
     if (!name || name.length > 120 || !tag || tag.length > 60 || !tagKey(tag)) { showError(form, 'Informe o nome e uma identificação válida para o equipamento.'); return; }
     if (manufacturer.length > 100 || serial.length > 160) { showError(form, 'Revise o fabricante e o modelo / número de série.'); return; }
-    if (nextCalibrationISO && !validDate(nextCalibrationISO)) { showError(form, 'Informe uma data válida para a próxima calibração.'); return; }
+    if (nextCalibrationISO && !validNextCalibration(nextCalibrationISO)) { showError(form, 'Informe uma data ou mês e ano válidos para a próxima calibração.'); return; }
     const id = stableId(company.cnpj, tag);
     if (catalog.some(item => !item.incomplete && item.id === id)) { showError(form, 'Esta identificação já está cadastrada para a empresa selecionada.'); return; }
     const values = { cnpj: company.cnpj, name, tag, serial, manufacturer, nextCalibrationISO };

@@ -81,8 +81,8 @@ function render(){
 }
 function showToast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
 let previousFocus;
-function openModal(title,desc,form){previousFocus=document.activeElement;if(window.ancalNavigation){if($('#sidebar').contains(previousFocus))previousFocus=$('#menuToggle');window.ancalNavigation.close({restoreFocus:false});}$('#modalBody').innerHTML=`<h2 id="modalTitle">${escapeHtml(title)}</h2><p>${escapeHtml(desc)}</p>${form}`;$('#modalBackdrop').classList.add('open');$('#modalBody').querySelector('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();}
-function closeModal(){const wasOpen=$('#modalBackdrop').classList.contains('open');$('#modalBackdrop').classList.remove('open');if(wasOpen)previousFocus?.focus();}
+function openModal(title,desc,form){previousFocus=document.activeElement;if(window.ancalNavigation){if($('#sidebar').contains(previousFocus))previousFocus=$('#menuToggle');window.ancalNavigation.close({restoreFocus:false});}window.ancalSignatureImages?.dispose($('#modalBody'));$('#modalBody').innerHTML=`<h2 id="modalTitle">${escapeHtml(title)}</h2><p>${escapeHtml(desc)}</p>${form}`;$('#modalBackdrop').classList.add('open');window.ancalSignatureImages?.hydrate($('#modalBody'));$('#modalBody').querySelector('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();}
+function closeModal(){const wasOpen=$('#modalBackdrop').classList.contains('open');window.ancalSignatureImages?.dispose($('#modalBody'));$('#modalBackdrop').classList.remove('open');if(wasOpen)previousFocus?.focus();}
 function listClientCompanies(){return window.ancalAccess?.getCompanies() || clients.map(c=>({name:c[0],cnpj:c[1]}));}
 function newOsModal(){
   if(window.ancalOrders){window.ancalOrders.openForm();return;}

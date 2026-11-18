@@ -19,6 +19,11 @@
     const [year, month, day] = value.split('-').map(Number);
     return year >= 1000 && month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month);
   }
+  function validMonthISO(value) {
+    if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return false;
+    return Number(value.slice(0, 4)) >= 1000;
+  }
+  function validScheduleISO(value) { return validISO(value) || validMonthISO(value); }
   function iso(year, month, day) { return String(year).padStart(4, '0') + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0'); }
   function todayISO() {
     const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -36,7 +41,7 @@
     return Math.floor(Date.UTC(year, month - 1, day) / dayMilliseconds);
   }
   function addDays(value, count) { return new Date((ordinal(value) + count) * dayMilliseconds).toISOString().slice(0, 10); }
-  function formatDate(value) { return validISO(value) ? value.slice(8, 10) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4) : 'A definir'; }
+  function formatDate(value) { return validMonthISO(value) ? value.slice(5, 7) + '/' + value.slice(0, 4) : validISO(value) ? value.slice(8, 10) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4) : 'A definir'; }
   function isPortal() { return typeof portalMode !== 'undefined' && portalMode === true; }
   function companyList() { return window.ancalAccess?.getCompanies() || clients.map(client => ({ name: client[0], cnpj: client[1], city: '' })); }
   function mayView(cnpj) {
@@ -68,7 +73,7 @@
       const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
       if (saved && saved.dates && typeof saved.dates === 'object' && !Array.isArray(saved.dates)) {
         stored = true;
-        Object.entries(saved.dates).forEach(([id, value]) => { if (validISO(value)) dates[id] = value; });
+        Object.entries(saved.dates).forEach(([id, value]) => { if (validScheduleISO(value)) dates[id] = value; });
       }
     } catch (_) { /* Initialize a new illustrative snapshot when storage cannot be read. */ }
     if (!stored) {
@@ -90,7 +95,7 @@
     }
     catalog().forEach(item => {
       if (Object.hasOwn(item, 'nextCalibrationISO')) {
-        if (validISO(item.nextCalibrationISO)) dates[canonicalId(item)] = item.nextCalibrationISO;
+        if (validScheduleISO(item.nextCalibrationISO)) dates[canonicalId(item)] = item.nextCalibrationISO;
         else delete dates[canonicalId(item)];
       }
     });
@@ -100,13 +105,14 @@
     const id = canonicalId(item);
     let next = dates[id] || '';
     if (Object.hasOwn(item, 'nextCalibrationISO')) {
-      next = validISO(item.nextCalibrationISO) ? item.nextCalibrationISO : '';
+      next = validScheduleISO(item.nextCalibrationISO) ? item.nextCalibrationISO : '';
       if (next && dates[id] !== next) { dates[id] = next; persist(); }
       else if (!next && Object.hasOwn(dates, id)) { delete dates[id]; persist(); }
     }
-    if (!validISO(next)) return { nextCalibrationISO: '', state: 'unknown', daysRemaining: null };
+    if (!validScheduleISO(next)) return { nextCalibrationISO: '', state: 'unknown', daysRemaining: null };
+    if (validMonthISO(next)) return { nextCalibrationISO: next, state: next < todayISO().slice(0, 7) ? 'expired' : next <= horizonISO().slice(0, 7) ? 'soon' : 'ok', precision: 'month', daysRemaining: null, label: 'Mês/ano informado' };
     const remaining = ordinal(next) - ordinal(todayISO());
-    return { nextCalibrationISO: next, state: remaining < 0 ? 'expired' : ordinal(next) <= ordinal(horizonISO()) ? 'soon' : 'ok', daysRemaining: remaining };
+    return { nextCalibrationISO: next, state: remaining < 0 ? 'expired' : ordinal(next) <= ordinal(horizonISO()) ? 'soon' : 'ok', precision: 'day', daysRemaining: remaining };
   }
   function scheduleFor(cnpj, tag) {
     if (!mayView(cnpj)) return { nextCalibrationISO: '', state: 'unknown', daysRemaining: null };
@@ -130,6 +136,7 @@
   }
   function daysLabel(item) {
     if (item.state === 'unknown') return 'Data não informada';
+    if (validMonthISO(item.nextCalibrationISO)) return 'Mês/ano informado';
     if (item.daysRemaining === 0) return 'Vence hoje';
     if (item.daysRemaining < 0) return `Vencido há ${Math.abs(item.daysRemaining)} ${item.daysRemaining === -1 ? 'dia' : 'dias'}`;
     return `Em ${item.daysRemaining} ${item.daysRemaining === 1 ? 'dia' : 'dias'}`;
